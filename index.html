@@ -453,22 +453,28 @@ body {
 <div class="settings-panel" id="settingsPanel" onclick="if(event.target===this)closeSettings()">
   <div class="settings-card" onclick="event.stopPropagation()">
     <h3>⚙️ 设置</h3>
-    <label>LLM API 地址</label>
-    <input type="text" id="cfgApiUrl" placeholder="https://api.deepseek.com/v1/chat/completions">
-    <div class="hint">DeepSeek / OpenAI 兼容接口均可</div>
 
+    <label style="color:var(--blue);">🧠 日程解析 (LLM)</label>
+    <label>API 地址</label>
+    <input type="text" id="cfgApiUrl" placeholder="https://api.deepseek.com/v1/chat/completions">
     <label>API Key</label>
     <input type="password" id="cfgApiKey" placeholder="sk-...">
-
     <label>模型</label>
     <input type="text" id="cfgModel" placeholder="deepseek-chat">
-    <div class="hint">如 deepseek-chat / gpt-4o-mini 等</div>
 
-    <label>语音语言</label>
+    <label style="color:var(--blue);margin-top:16px;">🎤 语音识别 (STT)</label>
+    <label>API 地址</label>
+    <input type="text" id="cfgSttApiUrl" placeholder="https://api.openai.com/v1/audio/transcriptions">
+    <label>API Key</label>
+    <input type="password" id="cfgSttApiKey" placeholder="sk-...（OpenAI Key）">
+    <label>模型</label>
+    <input type="text" id="cfgSttModel" placeholder="whisper-1">
+    <div class="hint">OpenAI Whisper API，需 OpenAI Key</div>
+
+    <label style="margin-top:12px;">语音语言</label>
     <select id="cfgLang">
       <option value="zh-CN">中文普通话</option>
       <option value="en-US">English</option>
-      <option value="yue-Hant-HK">粤语</option>
     </select>
 
     <div class="btn-row">
@@ -476,7 +482,7 @@ body {
       <button style="background:var(--blue);color:#fff;" onclick="saveSettings()">保存</button>
     </div>
     <div class="hint" style="margin-top:12px;text-align:center;">
-      无 Key 时使用本地规则解析<br>获取 Key: <a href="https://platform.deepseek.com" target="_blank">platform.deepseek.com</a>
+      LLM Key 用于解析日程（必填）<br>STT Key 用于语音转文字（不填则录音后手动输入）
     </div>
   </div>
 </div>
@@ -489,9 +495,7 @@ const COLORS = ['c1','c2','c3','c4','c5'];
 
 let events = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 let settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
-let weekOffset = 0; // 0 = current week
-let recognition = null;
-let isListening = false;
+let weekOffset = 0;
 let pendingParsed = null;
 
 // Default settings
@@ -499,6 +503,9 @@ const defaults = {
   apiUrl: 'https://api.deepseek.com/v1/chat/completions',
   apiKey: 'sk-310cc6d8520544fab871f78bcd254b4b',
   model: 'deepseek-chat',
+  sttApiUrl: 'https://api.openai.com/v1/audio/transcriptions',
+  sttApiKey: '',
+  sttModel: 'whisper-1',
   lang: 'zh-CN'
 };
 settings = { ...defaults, ...settings };
@@ -759,89 +766,70 @@ function toast(msg) {
   setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); }, 2000);
 }
 
-// ==================== VOICE + LLM ====================
+// ==================== VOICE RECORDING ====================
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+
 async function toggleVoice() {
-  if (isListening) {
-    stopListening();
+  if (isRecording) {
+    stopRecording();
     return;
   }
-  await startListening();
+  await startRecording();
 }
 
-async function startListening() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    toast('⚠️ 当前浏览器不支持语音识别，请使用 Chrome');
-    return;
-  }
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus' : 'audio/webm';
+    mediaRecorder = new MediaRecorder(stream, { mimeType });
 
-  recognition = new SpeechRecognition();
-  recognition.lang = settings.lang;
-  recognition.interimResults = true;
-  recognition.continuous = false;
-  recognition.maxAlternatives = 1;
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) audioChunks.push(e.data);
+    };
 
-  const bar = document.getElementById('voiceBar');
-  const text = document.getElementById('voiceText');
-  const dot = document.getElementById('voiceDot');
-  const statusText = document.getElementById('voiceStatusText');
-  const confirm = document.getElementById('voiceConfirm');
-  const fab = document.getElementById('fabBtn');
-  const fabLabel = document.getElementById('fabLabel');
-
-  bar.style.display = 'block';
-  text.textContent = '正在听...';
-  dot.className = 'vb-dot';
-  statusText.textContent = '请说中文';
-  confirm.style.display = 'none';
-  fab.classList.add('listening');
-  fabLabel.textContent = '停止';
-  isListening = true;
-  pendingParsed = null;
-
-  let finalText = '';
-
-  recognition.onresult = (event) => {
-    let interim = '';
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      if (event.results[i].isFinal) {
-        finalText += event.results[i][0].transcript;
-      } else {
-        interim += event.results[i][0].transcript;
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      const blob = new Blob(audioChunks, { type: mimeType });
+      if (blob.size < 500) {
+        updateVoiceBar('录音太短，请再试一次', '⚠️');
+        resetVoiceUI();
+        setTimeout(hideVoiceBar, 2000);
+        return;
       }
-    }
-    text.textContent = finalText || interim || '正在听...';
-  };
+      await transcribeAndParse(blob);
+    };
 
-  recognition.onerror = (event) => {
-    console.log('Speech error:', event.error);
-    if (event.error === 'no-speech') {
-      text.textContent = '没有听到声音，请再试一次';
-    } else if (event.error === 'aborted') {
-      // normal
+    mediaRecorder.start();
+    isRecording = true;
+
+    const fab = document.getElementById('fabBtn');
+    const fabLabel = document.getElementById('fabLabel');
+    fab.classList.add('listening');
+    fab.textContent = '⏹';
+    fabLabel.textContent = '录音中...点击停止';
+
+    updateVoiceBar('🔴 正在录音...', '说话中，说完点停止按钮');
+  } catch (err) {
+    console.error('Mic error:', err);
+    if (err.name === 'NotAllowedError') {
+      toast('⚠️ 请允许麦克风权限后重试');
+    } else if (err.name === 'NotFoundError') {
+      toast('⚠️ 未检测到麦克风设备');
     } else {
-      text.textContent = '识别出错: ' + event.error;
+      toast('⚠️ 麦克风访问失败: ' + err.message);
     }
-    resetVoiceUI();
-  };
-
-  recognition.onend = () => {
-    resetVoiceUI();
-    if (finalText.trim()) {
-      processWithLLM(finalText.trim());
-    } else {
-      hideVoiceBar();
-    }
-  };
-
-  recognition.start();
+  }
 }
 
-function stopListening() {
-  if (recognition) {
-    recognition.abort();
-    recognition = null;
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.stop();
   }
+  isRecording = false;
   resetVoiceUI();
 }
 
@@ -849,8 +837,23 @@ function resetVoiceUI() {
   const fab = document.getElementById('fabBtn');
   const fabLabel = document.getElementById('fabLabel');
   fab.classList.remove('listening');
+  fab.textContent = '🎤';
   fabLabel.textContent = '点按说话';
-  isListening = false;
+  isRecording = false;
+}
+
+function updateVoiceBar(text, status) {
+  const bar = document.getElementById('voiceBar');
+  const vbText = document.getElementById('voiceText');
+  const statusText = document.getElementById('voiceStatusText');
+  const dot = document.getElementById('voiceDot');
+  const confirm = document.getElementById('voiceConfirm');
+
+  bar.style.display = 'block';
+  vbText.textContent = text;
+  statusText.textContent = status;
+  dot.className = 'vb-dot';
+  confirm.style.display = 'none';
 }
 
 function hideVoiceBar() {
@@ -858,17 +861,120 @@ function hideVoiceBar() {
   document.getElementById('voiceConfirm').style.display = 'none';
 }
 
+// ==================== TRANSCRIBE + LLM ====================
+async function transcribeAndParse(audioBlob) {
+  const dot = document.getElementById('voiceDot');
+  const statusText = document.getElementById('voiceStatusText');
+  const vbText = document.getElementById('voiceText');
+
+  vbText.textContent = '⏳ 语音转文字中...';
+  dot.className = 'vb-dot thinking';
+  statusText.textContent = '调用语音识别 API';
+
+  let transcript = '';
+
+  // Try STT API if configured
+  if (settings.sttApiKey) {
+    try {
+      transcript = await callSTT(audioBlob);
+    } catch (e) {
+      console.error('STT error:', e);
+      statusText.textContent = '⚠️ 语音识别失败，请用文字输入';
+      dot.className = 'vb-dot';
+      showTextInputFallback();
+      return;
+    }
+  } else {
+    // No STT key - show text input fallback
+    statusText.textContent = '未配置语音识别 Key';
+    dot.className = 'vb-dot';
+    showTextInputFallback();
+    return;
+  }
+
+  if (!transcript.trim()) {
+    vbText.textContent = '未能识别到语音内容';
+    statusText.textContent = '❌ 请再试一次';
+    dot.className = 'vb-dot';
+    setTimeout(hideVoiceBar, 2000);
+    return;
+  }
+
+  // Show what was recognized
+  vbText.textContent = `"${transcript}"`;
+  statusText.textContent = '✅ 语音识别完成，AI 解析中...';
+  dot.className = 'vb-dot thinking';
+
+  await processWithLLM(transcript);
+}
+
+async function callSTT(audioBlob) {
+  const formData = new FormData();
+  formData.append('file', audioBlob, 'recording.webm');
+  formData.append('model', settings.sttModel || 'whisper-1');
+  formData.append('language', 'zh');
+
+  const resp = await fetch(settings.sttApiUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${settings.sttApiKey}`
+    },
+    body: formData
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`STT ${resp.status}: ${errText.slice(0,200)}`);
+  }
+
+  const data = await resp.json();
+  return data.text || '';
+}
+
+function showTextInputFallback() {
+  const vbText = document.getElementById('voiceText');
+  const confirm = document.getElementById('voiceConfirm');
+
+  vbText.innerHTML = '<input type="text" id="manualInput" placeholder="手动输入日程，如：明天下午3点开会提醒我" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">';
+
+  confirm.innerHTML = `
+    <button class="btn-yes" onclick="submitManualText()">✓ 解析</button>
+    <button class="btn-no" onclick="cancelAdd()">✗ 取消</button>
+  `;
+  confirm.style.display = 'flex';
+
+  // Focus and allow keyboard submit
+  setTimeout(() => {
+    const inp = document.getElementById('manualInput');
+    if (inp) {
+      inp.focus();
+      inp.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') submitManualText();
+      });
+    }
+  }, 200);
+}
+
+async function submitManualText() {
+  const inp = document.getElementById('manualInput');
+  const text = inp?.value?.trim();
+  if (!text) { toast('请输入日程内容'); return; }
+
+  const vbText = document.getElementById('voiceText');
+  const dot = document.getElementById('voiceDot');
+  const statusText = document.getElementById('voiceStatusText');
+  vbText.textContent = `"${text}"`;
+  dot.className = 'vb-dot thinking';
+  statusText.textContent = 'AI 解析中...';
+
+  await processWithLLM(text);
+}
+
 async function processWithLLM(text) {
-  const bar = document.getElementById('voiceBar');
   const vbText = document.getElementById('voiceText');
   const dot = document.getElementById('voiceDot');
   const statusText = document.getElementById('voiceStatusText');
   const confirm = document.getElementById('voiceConfirm');
-
-  vbText.textContent = `"${text}"`;
-  dot.className = 'vb-dot thinking';
-  statusText.textContent = 'AI 解析中...';
-  bar.style.display = 'block';
 
   let parsed = null;
 
@@ -879,12 +985,11 @@ async function processWithLLM(text) {
       dot.className = 'vb-dot';
     } catch (e) {
       console.error('LLM error:', e);
-      statusText.textContent = '⚠️ API 调用失败，使用本地解析';
+      statusText.textContent = '⚠️ API 失败，使用本地解析';
       dot.className = 'vb-dot';
       parsed = localParse(text);
     }
   } else {
-    // No API key, use local parser
     await sleep(400);
     parsed = localParse(text);
     statusText.textContent = '✅ 本地解析完成';
@@ -899,7 +1004,6 @@ async function processWithLLM(text) {
     return;
   }
 
-  // Show confirmation
   pendingParsed = parsed;
   const timeInfo = parsed.startTime ? `${parsed.startTime}-${parsed.endTime||''}` : '全天';
   const remindInfo = parsed.reminder ? '· 🔔提醒' : '';
@@ -931,16 +1035,16 @@ async function callLLM(text) {
 
 规则：
 1. "今天/明天/后天/大后天"等相对日期要转换为 YYYY-MM-DD 格式
-2. "下周X/下周一/下周三"等要正确计算日期（本周日期已列出，下周=本周日期+7天）
-3. "上午/下午/晚上/中午"要转换为24小时制时间：上午=06:00-12:00，中午=12:00-13:00，下午=13:00-18:00，晚上=18:00-22:00
-4. "早上8点/九点/三点半"等要转换为 HH:MM 格式
-5. "一个小时/两小时"等时长要计算结束时间
-6. 如果没有明确时间，默认 startTime 和 endTime 设为 null（全天事件）
-7. 如果提到"提醒"、"提醒我"、"别忘了"、"记得"，设置 reminder 为 true
-8. description 字段提炼用户提到的补充信息
+2. "下周X/下周一/下周三"等要正确计算日期（下周=本周日期+7天）
+3. "上午/下午/晚上/中午"转24小时：上午6-12点，中午12-13点，下午13-18点，晚上18-22点
+4. "8点/九点/三点半"等转 HH:MM 格式
+5. "一个小时/两小时"等计算结束时间
+6. 无明确时间则 startTime/endTime 为 null（全天事件）
+7. 含"提醒/别忘了/记得"则 reminder=true
+8. description 提炼补充信息
 
-只返回 JSON，不要 markdown 代码块，不要任何其他文字：
-{"title":"日程标题","date":"YYYY-MM-DD","startTime":"HH:MM或null","endTime":"HH:MM或null","description":"补充说明或空字符串","reminder":true或false}`;
+只返回 JSON，不要 markdown 代码块：
+{"title":"标题","date":"YYYY-MM-DD","startTime":"HH:MM或null","endTime":"HH:MM或null","description":"补充","reminder":true或false}`;
 
   const resp = await fetch(settings.apiUrl, {
     method: 'POST',
@@ -960,14 +1064,13 @@ async function callLLM(text) {
   });
 
   if (!resp.ok) {
-    throw new Error(`API ${resp.status}: ${await resp.text().then(t=>t.slice(0,200))}`);
+    throw new Error(`API ${resp.status}`);
   }
 
   const data = await resp.json();
   const content = data.choices?.[0]?.message?.content || '';
-  // Extract JSON from response (handle possible markdown wrapping)
   const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('No JSON in response: ' + content);
+  if (!jsonMatch) throw new Error('No JSON in response');
   return JSON.parse(jsonMatch[0]);
 }
 
@@ -1104,6 +1207,9 @@ function openSettings() {
   document.getElementById('cfgApiUrl').value = settings.apiUrl;
   document.getElementById('cfgApiKey').value = settings.apiKey;
   document.getElementById('cfgModel').value = settings.model;
+  document.getElementById('cfgSttApiUrl').value = settings.sttApiUrl || '';
+  document.getElementById('cfgSttApiKey').value = settings.sttApiKey || '';
+  document.getElementById('cfgSttModel').value = settings.sttModel || 'whisper-1';
   document.getElementById('cfgLang').value = settings.lang;
   document.getElementById('settingsPanel').style.display = 'flex';
 }
@@ -1116,6 +1222,9 @@ function saveSettings() {
   settings.apiUrl = document.getElementById('cfgApiUrl').value.trim();
   settings.apiKey = document.getElementById('cfgApiKey').value.trim();
   settings.model = document.getElementById('cfgModel').value.trim();
+  settings.sttApiUrl = document.getElementById('cfgSttApiUrl').value.trim();
+  settings.sttApiKey = document.getElementById('cfgSttApiKey').value.trim();
+  settings.sttModel = document.getElementById('cfgSttModel').value.trim();
   settings.lang = document.getElementById('cfgLang').value;
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   closeSettings();

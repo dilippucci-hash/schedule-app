@@ -2,1164 +2,1172 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📅 智能日程管家</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>语音日程</title>
 <style>
 :root {
-  --primary: #4f46e5;
-  --primary-light: #e0e7ff;
-  --danger: #ef4444;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --bg: #f8fafc;
+  --bg: #f5f5f7;
   --card: #fff;
-  --text: #1e293b;
-  --text-muted: #64748b;
-  --border: #e2e8f0;
-  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.04);
+  --text: #1d1d1f;
+  --muted: #86868b;
+  --border: #e5e5ea;
+  --blue: #007aff;
+  --blue-bg: #e8f2ff;
+  --red: #ff3b30;
+  --orange: #ff9500;
+  --green: #34c759;
+  --purple: #af52de;
+  --teal: #5ac8fa;
+  --pink: #ff2d55;
+  --shadow: 0 2px 12px rgba(0,0,0,.06);
   --radius: 12px;
+  --radius-sm: 8px;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   background: var(--bg);
   color: var(--text);
-  min-height: 100vh;
-  display: flex;
-}
-/* Sidebar */
-.sidebar {
-  width: 320px;
-  background: var(--card);
-  border-right: 1px solid var(--border);
-  padding: 20px;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  height: 100vh;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* ── Header ── */
+.header {
+  background: var(--card);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.header h1 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -.3px;
+}
+.header-actions { display: flex; gap: 8px; }
+.icon-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .15s;
+}
+.icon-btn:active { background: #d1d1d6; transform: scale(.94); }
+/* ── Week nav ── */
+.week-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  flex-shrink: 0;
+  gap: 8px;
+}
+.week-nav .week-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+  flex:1;
+}
+.week-nav .nav-arrow {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--card);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+  transition: all .15s;
+}
+.week-nav .nav-arrow:active { background: #d1d1d6; }
+.today-btn {
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  border: 1.5px solid var(--blue);
+  background: #fff;
+  color: var(--blue);
+  font-weight: 600;
+  cursor: pointer;
+}
+/* ── Timetable ── */
+.timetable-wrap {
+  flex: 1;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--card);
+  margin: 0 10px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.timetable {
+  display: grid;
+  grid-template-columns: 40px repeat(7, 1fr);
+  min-width: 100%;
+  font-size: 11px;
+}
+/* Day headers */
+.tt-header {
   position: sticky;
   top: 0;
-  overflow-y: auto;
+  z-index: 2;
+  background: var(--card);
+  padding: 10px 2px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 11px;
+  border-bottom: 1px solid var(--border);
 }
-.logo {
-  font-size: 24px;
-  font-weight: 800;
-  background: linear-gradient(135deg, var(--primary), #7c3aed);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.tt-header.today-col { background: var(--blue-bg); }
+.tt-header .day-name { display: block; }
+.tt-header .day-date {
+  display: block;
+  width: 24px; height: 24px;
+  line-height: 24px;
+  border-radius: 50%;
+  margin: 4px auto 0;
+  font-size: 12px;
+}
+.tt-header.today-col .day-date {
+  background: var(--blue);
+  color: #fff;
+}
+/* Time labels */
+.tt-time {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--card);
+  text-align: center;
+  font-size: 10px;
+  color: var(--muted);
+  padding: 2px 0;
+  border-right: 1px solid var(--border);
   display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 6px;
+  font-weight: 500;
+}
+/* Grid cells */
+.tt-cell {
+  min-height: 44px;
+  border-bottom: 1px solid #f0f0f5;
+  border-right: 1px solid #f0f0f5;
+  position: relative;
+  cursor: pointer;
+  transition: background .1s;
+  padding: 2px;
+}
+.tt-cell:active { background: #f0f0f5; }
+.tt-cell.today-col { background: #f8f9ff; }
+/* Event pill */
+.evt-pill {
+  background: var(--blue);
+  color: #fff;
+  border-radius: 4px;
+  padding: 3px 4px;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow: hidden;
+  cursor: pointer;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: transform .1s;
+  position: relative;
+  z-index: 1;
+}
+.evt-pill:active { transform: scale(.95); }
+.evt-pill.c1 { background: #007aff; }
+.evt-pill.c2 { background: #ff9500; }
+.evt-pill.c3 { background: #34c759; }
+.evt-pill.c4 { background: #af52de; }
+.evt-pill.c5 { background: #ff2d55; }
+/* ── Floating mic button ── */
+.fab-wrap {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 8px;
 }
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 18px;
-  border-radius: 8px;
+.fab {
+  width: 60px; height: 60px;
+  border-radius: 50%;
   border: none;
-  font-size: 14px;
-  font-weight: 600;
+  background: var(--blue);
+  color: #fff;
+  font-size: 28px;
   cursor: pointer;
-  transition: all .15s;
-}
-.btn:active { transform: scale(.97); }
-.btn-primary { background: var(--primary); color: #fff; }
-.btn-primary:hover { background: #4338ca; }
-.btn-outline { background: #fff; color: var(--primary); border: 2px solid var(--primary); }
-.btn-outline:hover { background: var(--primary-light); }
-.btn-danger { background: var(--danger); color: #fff; }
-.btn-sm { padding: 5px 10px; font-size: 12px; }
-.btn-block { width: 100%; justify-content: center; }
-/* Main */
-.main {
-  flex: 1;
-  padding: 24px 32px;
+  box-shadow: 0 4px 20px rgba(0,122,255,.35);
   display: flex;
-  flex-direction: column;
-  gap: 24px;
-  overflow-y: auto;
-  height: 100vh;
+  align-items: center;
+  justify-content: center;
+  transition: all .2s;
+  position: relative;
 }
-/* Quick view cards */
-.quick-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+.fab:active { transform: scale(.92); }
+.fab.listening {
+  background: var(--red);
+  box-shadow: 0 4px 24px rgba(255,59,48,.45);
+  animation: pulse-ring 1.5s infinite;
 }
-.quick-card {
+@keyframes pulse-ring {
+  0% { box-shadow: 0 4px 24px rgba(255,59,48,.45); }
+  50% { box-shadow: 0 4px 40px rgba(255,59,48,.7), 0 0 0 16px rgba(255,59,48,.1); }
+  100% { box-shadow: 0 4px 24px rgba(255,59,48,.45); }
+}
+.fab-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+}
+/* ── Voice status bar ── */
+.voice-bar {
+  position: fixed;
+  bottom: 110px;
+  left: 16px;
+  right: 16px;
   background: var(--card);
   border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: var(--shadow);
-  border-left: 4px solid var(--primary);
-  cursor: pointer;
-  transition: transform .15s;
-}
-.quick-card:hover { transform: translateY(-2px); }
-.quick-card.today { border-left-color: var(--warning); }
-.quick-card.upcoming { border-left-color: var(--success); }
-.quick-card .qc-icon { font-size: 28px; margin-bottom: 8px; }
-.quick-card .qc-label { font-size: 13px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
-.quick-card .qc-count { font-size: 32px; font-weight: 800; }
-/* Calendar */
-.calendar-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-.calendar-header h2 { font-size: 18px; font-weight: 700; }
-.calendar-nav { display: flex; gap: 4px; }
-.calendar-nav button {
-  width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border);
-  background: var(--card); cursor: pointer; font-size: 14px;
-}
-.calendar-nav button:hover { background: var(--primary-light); }
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
-}
-.calendar-grid .day-header {
-  text-align: center;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-muted);
-  padding: 8px 0;
-}
-.calendar-grid .day {
-  aspect-ratio: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  position: relative;
-  transition: all .1s;
-}
-.calendar-grid .day:hover { background: var(--primary-light); }
-.calendar-grid .day.today { background: var(--primary); color: #fff; font-weight: 700; }
-.calendar-grid .day.other-month { color: #cbd5e1; }
-.calendar-grid .day.has-event::after {
-  content: '';
-  width: 5px; height: 5px;
-  background: var(--danger);
-  border-radius: 50%;
-  position: absolute;
-  bottom: 4px;
-}
-.calendar-grid .day.today.has-event::after { background: #fff; }
-.calendar-grid .day.selected { box-shadow: 0 0 0 2px var(--primary); }
-/* Events list */
-.section-title {
-  font-size: 15px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.event-list { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
-.event-item {
-  background: var(--card);
-  border-radius: 10px;
-  padding: 14px 16px;
-  box-shadow: var(--shadow);
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  transition: transform .1s;
-  cursor: pointer;
-}
-.event-item:hover { transform: translateX(4px); }
-.event-item .ei-time {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--primary);
-  min-width: 48px;
-  text-align: center;
-  background: var(--primary-light);
-  border-radius: 6px;
-  padding: 4px 6px;
-}
-.event-item .ei-info { flex: 1; }
-.event-item .ei-title { font-weight: 600; font-size: 14px; }
-.event-item .ei-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-.event-item .ei-meta { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
-.event-item .ei-tag {
-  font-size: 10px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-weight: 600;
-}
-.ei-tag.reminder { background: #fef3c7; color: #92400e; }
-.ei-tag.image { background: #dbeafe; color: #1e40af; }
-.ei-tag.voice { background: #ede9fe; color: #6d28d9; }
-.event-item .ei-actions { display: flex; gap: 4px; }
-.empty-state {
-  text-align: center;
-  color: var(--text-muted);
-  padding: 40px 20px;
-}
-.empty-state .es-icon { font-size: 48px; margin-bottom: 8px; }
-/* Modal */
-.modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  animation: fadeIn .2s;
-}
-@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
-.modal {
-  background: var(--card);
-  border-radius: 16px;
-  padding: 28px;
-  width: 480px;
-  max-width: 90vw;
-  max-height: 85vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0,0,0,.15);
+  padding: 14px 18px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.12);
+  z-index: 99;
+  display: none;
   animation: slideUp .25s;
 }
-@keyframes slideUp { from { transform:translateY(20px); opacity:0; } to { transform:translateY(0); opacity:1; } }
-.modal h3 { font-size: 20px; margin-bottom: 20px; }
-.form-group { margin-bottom: 16px; }
-.form-group label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
+@keyframes slideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+.voice-bar .vb-text {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
   margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: .5px;
 }
-.form-group input, .form-group textarea, .form-group select {
-  width: 100%;
-  padding: 10px 14px;
-  border: 2px solid var(--border);
-  border-radius: 8px;
-  font-size: 14px;
-  font-family: inherit;
-  transition: border-color .15s;
-}
-.form-group input:focus, .form-group textarea:focus, .form-group select:focus {
-  outline: none;
-  border-color: var(--primary);
-}
-.form-group textarea { resize: vertical; min-height: 60px; }
-.form-row { display: flex; gap: 12px; }
-.form-row .form-group { flex:1; }
-/* Input tabs */
-.input-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
-.input-tab {
-  flex: 1;
-  padding: 8px;
-  text-align: center;
-  border-radius: 8px;
-  background: #f1f5f9;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  transition: all .15s;
-}
-.input-tab.active { background: var(--primary); color: #fff; }
-.input-tab:hover:not(.active) { background: var(--primary-light); }
-/* Image upload area */
-.upload-area {
-  border: 2px dashed var(--border);
-  border-radius: 10px;
-  padding: 24px;
-  text-align: center;
-  cursor: pointer;
-  transition: all .15s;
-}
-.upload-area:hover { border-color: var(--primary); background: var(--primary-light); }
-.upload-area img { max-width: 100%; max-height: 200px; border-radius: 8px; margin-top: 8px; }
-.upload-area .ua-icon { font-size: 36px; }
-/* Voice recorder */
-.voice-recorder {
+.voice-bar .vb-status {
+  font-size: 11px;
+  color: var(--muted);
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: #f1f5f9;
-  border-radius: 10px;
+  gap: 6px;
 }
-.recording-dot {
-  width: 12px; height: 12px;
-  background: var(--danger);
+.voice-bar .vb-dot {
+  width: 8px; height: 8px;
+  background: var(--green);
   border-radius: 50%;
+}
+.voice-bar .vb-dot.thinking {
+  background: var(--orange);
   animation: pulse 1s infinite;
 }
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.3; } }
-.recording-time { font-variant-numeric: tabular-nums; font-weight: 600; }
-/* Notification toast */
-.toast {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: var(--card);
-  border-radius: 10px;
-  padding: 16px 20px;
-  box-shadow: 0 10px 40px rgba(0,0,0,.12);
-  z-index: 200;
+.voice-bar .vb-confirm {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  animation: slideIn .3s;
-  border-left: 4px solid var(--warning);
+  gap: 8px;
+  margin-top: 10px;
 }
-@keyframes slideIn { from { transform:translateX(100%); } to { transform:translateX(0); } }
-.toast .toast-icon { font-size: 28px; }
-.toast .toast-title { font-weight: 700; font-size: 14px; }
-.toast .toast-time { font-size: 12px; color: var(--text-muted); }
-/* Responsive */
-@media (max-width: 768px) {
-  body { flex-direction: column; }
-  .sidebar { width: 100%; height: auto; position: static; }
-  .main { height: auto; padding: 16px; }
-  .quick-cards { grid-template-columns: repeat(3, 1fr); }
-  .calendar-grid .day { font-size: 11px; }
+.voice-bar .vb-confirm button {
+  flex:1;
+  padding: 8px;
+  border-radius: 8px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.vb-confirm .btn-yes { background: var(--blue); color: #fff; }
+.vb-confirm .btn-no { background: #f1f1f4; color: var(--text); }
+/* ── Event detail sheet ── */
+.sheet-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.35);
+  z-index: 200;
+  display: none;
+  align-items: flex-end;
+  animation: fadeIn .2s;
+}
+@keyframes fadeIn { from { opacity:0; } }
+.sheet {
+  background: var(--card);
+  border-radius: 20px 20px 0 0;
+  padding: 20px 20px 32px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: slideUp2 .3s;
+}
+@keyframes slideUp2 { from { transform:translateY(100%); } }
+.sheet-handle {
+  width: 36px; height: 4px;
+  background: #d1d1d6;
+  border-radius: 2px;
+  margin: 0 auto 16px;
+}
+.sheet h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.sheet .sheet-date { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+.sheet .sheet-desc { font-size: 14px; line-height: 1.5; color: #555; margin-bottom: 12px; }
+.sheet .sheet-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.sheet .sheet-tag {
+  font-size: 11px; padding: 4px 10px;
+  border-radius: 12px; font-weight: 600;
+}
+.sheet-tag.remind { background: #fff3cd; color: #856404; }
+.sheet .sheet-actions { display: flex; gap: 10px; }
+.sheet .sheet-actions button {
+  flex:1; padding: 12px; border-radius: 10px;
+  border: none; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+/* ── Settings panel ── */
+.settings-panel {
+  position: fixed; inset: 0;
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,.4);
+}
+.settings-card {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 24px;
+  width: 320px;
+  max-width: 90vw;
+}
+.settings-card h3 { font-size: 17px; margin-bottom: 16px; }
+.settings-card label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 4px;
+  margin-top: 12px;
+}
+.settings-card input, .settings-card select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+}
+.settings-card input:focus { outline: none; border-color: var(--blue); }
+.settings-card .hint {
+  font-size: 10px; color: var(--muted); margin-top: 4px;
+}
+.settings-card .btn-row { display: flex; gap: 8px; margin-top: 18px; }
+.settings-card .btn-row button {
+  flex:1; padding: 10px; border-radius: 8px;
+  border: none; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+/* ── Toast ── */
+.toast {
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+  background: #1d1d1f; color: #fff;
+  padding: 10px 20px; border-radius: 20px;
+  font-size: 13px; font-weight: 600;
+  z-index: 999;
+  animation: toastIn .3s;
+  pointer-events: none;
+}
+@keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(-10px); } }
+/* ── Empty state ── */
+.empty-hint {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  text-align: center;
+  color: var(--muted);
+  pointer-events: none;
+  font-size: 13px;
 }
 </style>
 </head>
 <body>
 
-<!-- Sidebar -->
-<aside class="sidebar">
-  <div class="logo">📅 智能日程管家</div>
-
-  <button class="btn btn-primary btn-block" onclick="openAddModal()">➕ 新建日程</button>
-
-  <!-- Quick stats -->
-  <div class="quick-cards" style="grid-template-columns:1fr;">
-    <div class="quick-card today" onclick="goToToday()">
-      <div class="qc-icon">📌</div>
-      <div class="qc-label">今日日程</div>
-      <div class="qc-count" id="todayCount">0</div>
-    </div>
-    <div class="quick-card upcoming">
-      <div class="qc-icon">📋</div>
-      <div class="qc-label">即将到来</div>
-      <div class="qc-count" id="upcomingCount">0</div>
-    </div>
+<!-- Header -->
+<div class="header">
+  <h1>📅 语音日程</h1>
+  <div class="header-actions">
+    <button class="icon-btn" onclick="openSettings()" title="设置">⚙️</button>
   </div>
+</div>
 
-  <!-- Upcoming events -->
-  <div>
-    <div class="section-title">🔔 即将到来的日程</div>
-    <div class="event-list" id="upcomingList">
-      <div class="empty-state">
-        <div class="es-icon">📭</div>
-        <p>暂无日程安排</p>
-      </div>
+<!-- Week navigation -->
+<div class="week-nav">
+  <button class="nav-arrow" onclick="changeWeek(-1)">◀</button>
+  <span class="week-label" id="weekLabel"></span>
+  <button class="nav-arrow" onclick="changeWeek(1)">▶</button>
+  <button class="today-btn" onclick="goThisWeek()">本周</button>
+</div>
+
+<!-- Timetable -->
+<div class="timetable-wrap" id="timetableWrap">
+  <div class="timetable" id="timetable"></div>
+</div>
+
+<!-- Floating mic button -->
+<div class="fab-wrap">
+  <div class="voice-bar" id="voiceBar">
+    <div class="vb-text" id="voiceText">...</div>
+    <div class="vb-status" id="voiceStatus">
+      <span class="vb-dot" id="voiceDot"></span>
+      <span id="voiceStatusText">正在听...</span>
     </div>
+    <div class="vb-confirm" id="voiceConfirm" style="display:none;"></div>
   </div>
+  <button class="fab" id="fabBtn" onclick="toggleVoice()">🎤</button>
+  <div class="fab-label" id="fabLabel">点按说话</div>
+</div>
 
-  <div style="margin-top:auto; font-size:11px; color:var(--text-muted); text-align:center; padding-top:16px;">
-    数据存储在浏览器本地<br>🔒 隐私安全
+<!-- Event detail sheet -->
+<div class="sheet-overlay" id="sheetOverlay" onclick="closeSheet(event)">
+  <div class="sheet" id="sheetBox" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div id="sheetContent"></div>
   </div>
-</aside>
+</div>
 
-<!-- Main -->
-<main class="main">
-  <!-- Calendar -->
-  <div>
-    <div class="calendar-header">
-      <h2 id="monthLabel"></h2>
-      <div class="calendar-nav">
-        <button onclick="changeMonth(-1)" title="上一月">◀</button>
-        <button onclick="goToToday()" style="width:auto;padding:0 12px;font-size:12px;">今天</button>
-        <button onclick="changeMonth(1)" title="下一月">▶</button>
-      </div>
+<!-- Settings -->
+<div class="settings-panel" id="settingsPanel" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-card" onclick="event.stopPropagation()">
+    <h3>⚙️ 设置</h3>
+    <label>LLM API 地址</label>
+    <input type="text" id="cfgApiUrl" placeholder="https://api.deepseek.com/v1/chat/completions">
+    <div class="hint">DeepSeek / OpenAI 兼容接口均可</div>
+
+    <label>API Key</label>
+    <input type="password" id="cfgApiKey" placeholder="sk-...">
+
+    <label>模型</label>
+    <input type="text" id="cfgModel" placeholder="deepseek-chat">
+    <div class="hint">如 deepseek-chat / gpt-4o-mini 等</div>
+
+    <label>语音语言</label>
+    <select id="cfgLang">
+      <option value="zh-CN">中文普通话</option>
+      <option value="en-US">English</option>
+      <option value="yue-Hant-HK">粤语</option>
+    </select>
+
+    <div class="btn-row">
+      <button style="background:#f1f1f4;color:var(--text);" onclick="closeSettings()">取消</button>
+      <button style="background:var(--blue);color:#fff;" onclick="saveSettings()">保存</button>
     </div>
-    <div class="calendar-grid" id="calendarGrid"></div>
-  </div>
-
-  <!-- Selected date events -->
-  <div>
-    <div class="section-title">
-      <span id="selectedDateLabel">📅 选择日期查看日程</span>
-      <button class="btn btn-outline btn-sm" onclick="openAddModal()">+ 添加</button>
+    <div class="hint" style="margin-top:12px;text-align:center;">
+      无 Key 时使用本地规则解析<br>获取 Key: <a href="https://platform.deepseek.com" target="_blank">platform.deepseek.com</a>
     </div>
-    <div class="event-list" id="dayEventList">
-      <div class="empty-state">
-        <div class="es-icon">👆</div>
-        <p>点击日历中的日期查看当天日程</p>
-      </div>
-    </div>
-  </div>
-</main>
-
-<!-- Add/Edit Modal -->
-<div class="modal-overlay" id="modalOverlay" style="display:none;" onclick="closeModal(event)">
-  <div class="modal" id="modalBox" onclick="event.stopPropagation()">
-    <h3 id="modalTitle">新建日程</h3>
-
-    <!-- Input mode tabs -->
-    <div class="input-tabs">
-      <div class="input-tab active" onclick="switchInputTab('text')" id="tabText">✏️ 文字</div>
-      <div class="input-tab" onclick="switchInputTab('image')" id="tabImage">🖼️ 图片</div>
-      <div class="input-tab" onclick="switchInputTab('voice')" id="tabVoice">🎤 语音</div>
-    </div>
-
-    <form id="eventForm" onsubmit="saveEvent(event)">
-      <input type="hidden" id="eventId">
-      <input type="hidden" id="inputMode" value="text">
-
-      <!-- Text input -->
-      <div id="panelText">
-        <div class="form-group">
-          <label>标题 *</label>
-          <input type="text" id="evtTitle" placeholder="例如：团队周会" required>
-        </div>
-        <div class="form-group">
-          <label>描述</label>
-          <textarea id="evtDesc" placeholder="添加详细描述..."></textarea>
-        </div>
-      </div>
-
-      <!-- Image input -->
-      <div id="panelImage" style="display:none;">
-        <div class="form-group">
-          <label>标题</label>
-          <input type="text" id="evtTitleImg" placeholder="为图片日程命名">
-        </div>
-        <div class="upload-area" id="uploadArea" onclick="document.getElementById('imageInput').click()">
-          <div class="ua-icon">📷</div>
-          <p>点击上传图片</p>
-          <p style="font-size:11px;color:var(--text-muted);">支持 JPG/PNG/GIF</p>
-          <img id="imagePreview" style="display:none;">
-        </div>
-        <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
-        <div class="form-group" style="margin-top:12px;">
-          <label>图片说明</label>
-          <textarea id="evtDescImg" placeholder="描述这张图片相关的日程..."></textarea>
-        </div>
-      </div>
-
-      <!-- Voice input -->
-      <div id="panelVoice" style="display:none;">
-        <div class="form-group">
-          <label>标题</label>
-          <input type="text" id="evtTitleVoice" placeholder="为语音日程命名">
-        </div>
-        <div class="voice-recorder">
-          <button type="button" class="btn btn-danger btn-sm" id="recordBtn" onclick="toggleRecording()">🎤 开始录音</button>
-          <span id="recordingStatus" style="font-size:13px;color:var(--text-muted);">点击开始录音</span>
-          <span id="recordingDot" class="recording-dot" style="display:none;"></span>
-          <span id="recordingTime" class="recording-time" style="display:none;">00:00</span>
-        </div>
-        <audio id="audioPreview" controls style="display:none;width:100%;margin-top:8px;"></audio>
-        <div class="form-group" style="margin-top:12px;">
-          <label>语音备注</label>
-          <textarea id="evtDescVoice" placeholder="添加补充说明..."></textarea>
-        </div>
-      </div>
-
-      <!-- Common fields -->
-      <div class="form-row">
-        <div class="form-group">
-          <label>日期 *</label>
-          <input type="date" id="evtDate" required>
-        </div>
-        <div class="form-group">
-          <label>时间</label>
-          <input type="time" id="evtTime">
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>
-          <input type="checkbox" id="evtReminder" checked style="width:auto;margin-right:6px;">
-          开启提醒（提前15分钟）
-        </label>
-      </div>
-
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">
-        <button type="button" class="btn btn-outline" onclick="closeModal()">取消</button>
-        <button type="button" class="btn btn-danger btn-sm" id="deleteEventBtn" style="display:none;margin-right:auto;" onclick="deleteCurrentEvent()">删除</button>
-        <button type="submit" class="btn btn-primary">💾 保存日程</button>
-      </div>
-    </form>
   </div>
 </div>
 
 <script>
-// ==================== Data Layer ====================
-const STORAGE_KEY = 'schedule_app_events';
+// ==================== DATA ====================
+const STORAGE_KEY = 'voice_schedule_events';
+const SETTINGS_KEY = 'voice_schedule_settings';
+const COLORS = ['c1','c2','c3','c4','c5'];
+
 let events = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-let currentMonth = new Date().getMonth();
-let currentYear = new Date().getFullYear();
-let selectedDate = null;
-let editingId = null;
-let currentImageData = null;
-let currentAudioData = null;
-let mediaRecorder = null;
-let audioChunks = [];
-let recordingTimer = null;
-let recordingSeconds = 0;
+let settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+let weekOffset = 0; // 0 = current week
+let recognition = null;
+let isListening = false;
+let pendingParsed = null;
 
-// IndexedDB for media blobs
-let db = null;
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open('ScheduleAppDB', 1);
-    req.onupgradeneeded = () => {
-      const d = req.result;
-      if (!d.objectStoreNames.contains('media')) {
-        d.createObjectStore('media', { keyPath: 'id' });
-      }
-    };
-    req.onsuccess = () => { db = req.result; resolve(db); };
-    req.onerror = () => reject(req.error);
-  });
+// Default settings
+const defaults = {
+  apiUrl: 'https://api.deepseek.com/v1/chat/completions',
+  apiKey: '',
+  model: 'deepseek-chat',
+  lang: 'zh-CN'
+};
+settings = { ...defaults, ...settings };
+
+// ==================== WEEK CALCULATION ====================
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  d.setHours(0,0,0,0);
+  return d;
 }
 
-async function saveMedia(id, dataUrl) {
-  if (!db) await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('media', 'readwrite');
-    const store = tx.objectStore('media');
-    // Convert dataUrl to blob for storage efficiency
-    fetch(dataUrl).then(r => r.blob()).then(blob => {
-      store.put({ id, blob, createdAt: Date.now() });
-      tx.oncomplete = () => resolve();
-    }).catch(reject);
-  });
+function getWeekDates() {
+  const now = new Date();
+  const monday = getMonday(now);
+  monday.setDate(monday.getDate() + weekOffset * 7);
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(d.getDate() + i);
+    dates.push(d);
+  }
+  return dates;
 }
 
-async function getMedia(id) {
-  if (!db) await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('media', 'readonly');
-    const store = tx.objectStore('media');
-    const req = store.get(id);
-    req.onsuccess = () => {
-      if (!req.result) return resolve(null);
-      const blob = req.result.blob;
-      const url = URL.createObjectURL(blob);
-      resolve(url);
-    };
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function deleteMedia(id) {
-  if (!db) await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('media', 'readwrite');
-    const store = tx.objectStore('media');
-    store.delete(id);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-function saveEvents() {
-  // Store metadata + media IDs in localStorage, binary blobs in IndexedDB
-  const meta = events.map(e => ({
-    id: e.id,
-    title: e.title,
-    description: e.description,
-    date: e.date,
-    time: e.time,
-    reminder: e.reminder,
-    inputMode: e.inputMode,
-    imageMediaId: e.imageMediaId || null,
-    voiceMediaId: e.voiceMediaId || null,
-    createdAt: e.createdAt,
-    updatedAt: e.updatedAt,
-  }));
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(meta));
-}
-
-function generateId() {
-  return 'evt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-}
-
-function getEventsForDate(dateStr) {
-  return events.filter(e => e.date === dateStr).sort((a, b) => (a.time || '23:59').localeCompare(b.time || '23:59'));
-}
-
-function getTodayStr() {
-  const d = new Date();
+function fmtDate(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-// ==================== Rendering ====================
-function renderCalendar() {
-  const grid = document.getElementById('calendarGrid');
-  const label = document.getElementById('monthLabel');
-  const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-  label.textContent = `${currentYear}年 ${months[currentMonth]}`;
+function fmtShort(d) {
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
 
-  const dayHeaders = ['日','一','二','三','四','五','六'];
-  let html = dayHeaders.map(d => `<div class="day-header">${d}</div>`).join('');
+// ==================== RENDER TIMETABLE ====================
+const TIME_SLOTS = [];
+for (let h = 6; h <= 23; h++) {
+  TIME_SLOTS.push(`${String(h).padStart(2,'0')}:00`);
+}
 
-  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
-  const todayStr = getTodayStr();
+function getEventsForDate(dateStr) {
+  return events.filter(e => e.date === dateStr).sort((a,b) => (a.startTime||'').localeCompare(b.startTime||''));
+}
 
-  // Previous month padding
-  for (let i = firstDay - 1; i >= 0; i--) {
-    const d = daysInPrevMonth - i;
-    const m = currentMonth === 0 ? 11 : currentMonth - 1;
-    const y = currentMonth === 0 ? currentYear - 1 : currentYear;
-    const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const hasEvent = events.some(e => e.date === dateStr);
-    html += `<div class="day other-month${hasEvent?' has-event':''}" data-date="${dateStr}">${d}</div>`;
-  }
+function getEventsForDateAndSlot(dateStr, hour) {
+  return events.filter(e => {
+    if (e.date !== dateStr) return false;
+    const startH = parseInt(e.startTime?.split(':')[0] || '0');
+    const endH = parseInt(e.endTime?.split(':')[0] || '0');
+    return startH <= hour && endH > hour;
+  });
+}
 
-  // Current month
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+function getEventColor(eventId) {
+  const idx = events.findIndex(e => e.id === eventId);
+  return COLORS[idx % COLORS.length];
+}
+
+function renderTimetable() {
+  const dates = getWeekDates();
+  const todayStr = fmtDate(new Date());
+  const days = ['周一','周二','周三','周四','周五','周六','周日'];
+  const grid = document.getElementById('timetable');
+  const label = document.getElementById('weekLabel');
+
+  const first = dates[0], last = dates[6];
+  label.textContent = `${first.getMonth()+1}月${first.getDate()}日 - ${last.getMonth()+1}月${last.getDate()}日`;
+
+  let html = '';
+
+  // Empty corner
+  html += '<div class="tt-header" style="position:sticky;top:0;left:0;z-index:3;background:var(--card);"></div>';
+
+  // Day headers
+  for (let i = 0; i < 7; i++) {
+    const d = dates[i];
+    const dateStr = fmtDate(d);
     const isToday = dateStr === todayStr;
-    const hasEvent = events.some(e => e.date === dateStr);
-    const isSelected = selectedDate === dateStr;
-    html += `<div class="day${isToday?' today':''}${hasEvent?' has-event':''}${isSelected?' selected':''}" data-date="${dateStr}">${d}</div>`;
+    html += `<div class="tt-header${isToday?' today-col':''}" style="position:sticky;top:0;z-index:2;">
+      <span class="day-name">${days[i]}</span>
+      <span class="day-date">${d.getDate()}</span>
+    </div>`;
   }
 
-  // Next month padding
-  const totalCells = firstDay + daysInMonth;
-  const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
-  for (let d = 1; d <= remaining; d++) {
-    const m = currentMonth === 11 ? 0 : currentMonth + 1;
-    const y = currentMonth === 11 ? currentYear + 1 : currentYear;
-    const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const hasEvent = events.some(e => e.date === dateStr);
-    html += `<div class="day other-month${hasEvent?' has-event':''}" data-date="${dateStr}">${d}</div>`;
+  // Time rows
+  for (const slot of TIME_SLOTS) {
+    const hour = parseInt(slot);
+    html += `<div class="tt-time" style="position:sticky;left:0;z-index:1;">${slot}</div>`;
+
+    for (let i = 0; i < 7; i++) {
+      const d = dates[i];
+      const dateStr = fmtDate(d);
+      const isToday = dateStr === todayStr;
+      const cellId = `cell-${dateStr}-${hour}`;
+      const cellEvents = getEventsForDateAndSlot(dateStr, hour);
+
+      html += `<div class="tt-cell${isToday?' today-col':''}" id="${cellId}"
+        data-date="${dateStr}" data-hour="${hour}"
+        onclick="onCellClick('${dateStr}','${hour}')">`;
+
+      // Show only first occurrence of each event (at its start hour)
+      for (const evt of cellEvents) {
+        const startH = parseInt(evt.startTime?.split(':')[0] || '0');
+        if (startH === hour) {
+          const colorCls = getEventColor(evt.id);
+          const timeStr = evt.startTime?.slice(0,5) || '';
+          const endStr = evt.endTime?.slice(0,5) || '';
+          html += `<div class="evt-pill ${colorCls}" onclick="event.stopPropagation();openEvent('${evt.id}')"
+            title="${evt.title}">${timeStr} ${evt.title}</div>`;
+        } else if (startH < hour) {
+          // Continuation of event from above
+          html += `<div style="height:2px;background:${getEventBg(evt.id)};margin:0 2px;" onclick="event.stopPropagation();openEvent('${evt.id}')"></div>`;
+        }
+      }
+
+      html += '</div>';
+    }
   }
 
   grid.innerHTML = html;
 
-  // Click handlers
-  grid.querySelectorAll('.day').forEach(el => {
-    el.addEventListener('click', () => {
-      const dateStr = el.dataset.date;
-      selectedDate = dateStr;
-      // Update month if clicking other-month day
-      const [y, m] = dateStr.split('-').map(Number);
-      if (m - 1 !== currentMonth || y !== currentYear) {
-        currentMonth = m - 1;
-        currentYear = y;
-      }
-      renderAll();
-    });
-  });
+  // Scroll to 8:00 (current time - 2 hours in the morning)
+  const wrap = document.getElementById('timetableWrap');
+  const now = new Date();
+  const curHour = now.getHours();
+  const scrollTo = Math.max(0, curHour - 2);
+  const rowHeight = 44;
+  // Add 1 for header row
+  const scrollPos = (scrollTo - 6 + 1) * rowHeight;
+  if (weekOffset === 0) {
+    setTimeout(() => { wrap.scrollTop = scrollPos; }, 100);
+  }
 }
 
-function renderDayEvents() {
-  const list = document.getElementById('dayEventList');
-  const label = document.getElementById('selectedDateLabel');
-  if (!selectedDate) {
-    label.textContent = '📅 选择日期查看日程';
-    list.innerHTML = '<div class="empty-state"><div class="es-icon">👆</div><p>点击日历中的日期查看当天日程</p></div>';
-    return;
-  }
-  label.textContent = `📅 ${selectedDate} 的日程`;
-  const dayEvents = getEventsForDate(selectedDate);
-  if (dayEvents.length === 0) {
-    list.innerHTML = `<div class="empty-state"><div class="es-icon">📭</div><p>${selectedDate} 暂无日程</p><button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="openAddModal()">+ 添加日程</button></div>`;
-    return;
-  }
-  list.innerHTML = dayEvents.map(e => renderEventItem(e)).join('');
+function getEventBg(eventId) {
+  const idx = events.findIndex(e => e.id === eventId);
+  const map = {0:'#007aff',1:'#ff9500',2:'#34c759',3:'#af52de',4:'#ff2d55'};
+  return map[idx % 5] || '#007aff';
 }
 
-async function renderUpcomingList() {
-  const list = document.getElementById('upcomingList');
-  const today = getTodayStr();
-  const upcoming = events
-    .filter(e => e.date >= today)
-    .sort((a, b) => (a.date + (a.time||'23:59')).localeCompare(b.date + (b.time||'23:59')))
-    .slice(0, 8);
-
-  if (upcoming.length === 0) {
-    list.innerHTML = '<div class="empty-state"><div class="es-icon">📭</div><p>暂无日程安排</p></div>';
-  } else {
-    list.innerHTML = upcoming.map(e => renderEventItem(e)).join('');
-  }
-
-  // Stats
-  const todayEvents = events.filter(e => e.date === today).length;
-  document.getElementById('todayCount').textContent = todayEvents;
-  document.getElementById('upcomingCount').textContent = upcoming.length;
+// ==================== EVENT SHEET ====================
+function onCellClick(dateStr, hour) {
+  const startTime = `${String(hour).padStart(2,'0')}:00`;
+  const endTime = `${String(hour+1).padStart(2,'0')}:00`;
+  showAddSheet(dateStr, startTime, endTime);
 }
 
-function renderEventItem(e) {
-  const timeStr = e.time ? e.time.slice(0, 5) : '全天';
-  const tags = [];
-  if (e.reminder) tags.push('<span class="ei-tag reminder">🔔 提醒</span>');
-  if (e.inputMode === 'image' || e.imageMediaId) tags.push('<span class="ei-tag image">🖼️ 图片</span>');
-  if (e.inputMode === 'voice' || e.voiceMediaId) tags.push('<span class="ei-tag voice">🎤 语音</span>');
-
-  return `
-    <div class="event-item" onclick="openEditModal('${e.id}')">
-      <div class="ei-time">${timeStr}</div>
-      <div class="ei-info">
-        <div class="ei-title">${escapeHtml(e.title || '未命名日程')}</div>
-        ${e.description ? `<div class="ei-desc">${escapeHtml(e.description.slice(0, 60))}${e.description.length>60?'...':''}</div>` : ''}
-        <div class="ei-meta">${tags.join('')}</div>
+function showAddSheet(dateStr, startTime, endTime) {
+  const sheet = document.getElementById('sheetOverlay');
+  const content = document.getElementById('sheetContent');
+  content.innerHTML = `
+    <div class="sheet-handle"></div>
+    <h3>新建日程</h3>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
+      <input type="text" id="addTitle" placeholder="日程标题" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:8px;font-size:15px;font-family:inherit;">
+      <div style="display:flex;gap:8px;">
+        <input type="date" id="addDate" value="${dateStr}" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
       </div>
-      <div class="ei-actions" onclick="event.stopPropagation()">
-        <button class="btn btn-outline btn-sm" onclick="viewEventMedia('${e.id}')" title="查看媒体">👁️</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteEvent('${e.id}')" title="删除">🗑️</button>
+      <div style="display:flex;gap:8px;">
+        <input type="time" id="addStart" value="${startTime}" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
+        <span style="line-height:40px;color:var(--muted);">至</span>
+        <input type="time" id="addEnd" value="${endTime}" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
       </div>
+      <textarea id="addDesc" placeholder="备注（可选）" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;min-height:60px;resize:vertical;"></textarea>
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;">
+        <input type="checkbox" id="addRemind" checked> 提前15分钟提醒
+      </label>
+    </div>
+    <div class="sheet-actions" style="margin-top:16px;">
+      <button style="background:#f1f1f4;color:var(--text);" onclick="closeSheet()">取消</button>
+      <button style="background:var(--blue);color:#fff;" onclick="saveNewEvent()">保存</button>
     </div>
   `;
+  sheet.style.display = 'flex';
 }
 
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
+function openEvent(id) {
+  const evt = events.find(e => e.id === id);
+  if (!evt) return;
+  const sheet = document.getElementById('sheetOverlay');
+  const content = document.getElementById('sheetContent');
+  const timeStr = evt.startTime ? `${evt.startTime.slice(0,5)} - ${evt.endTime?.slice(0,5) || '?'}` : '全天';
+  const remindTag = evt.reminder ? '<span class="sheet-tag remind">🔔 已开启提醒</span>' : '';
+
+  content.innerHTML = `
+    <div class="sheet-handle"></div>
+    <h3>${escHtml(evt.title)}</h3>
+    <div class="sheet-date">📅 ${evt.date} · ${timeStr}</div>
+    ${evt.description ? `<div class="sheet-desc">${escHtml(evt.description)}</div>` : ''}
+    <div class="sheet-tags">${remindTag}</div>
+    <div class="sheet-actions">
+      <button style="background:#f1f1f4;color:var(--text);" onclick="closeSheet()">关闭</button>
+      <button style="background:var(--red);color:#fff;" onclick="deleteEvent('${evt.id}')">删除</button>
+    </div>
+  `;
+  sheet.style.display = 'flex';
 }
 
-function renderAll() {
-  renderCalendar();
-  renderDayEvents();
-  renderUpcomingList();
+function closeSheet(evt) {
+  if (evt && evt.target !== document.getElementById('sheetOverlay')) return;
+  document.getElementById('sheetOverlay').style.display = 'none';
 }
 
-// ==================== Modal ====================
-function openAddModal(dateStr) {
-  editingId = null;
-  document.getElementById('modalTitle').textContent = '新建日程';
-  document.getElementById('eventId').value = '';
-  document.getElementById('evtTitle').value = '';
-  document.getElementById('evtDesc').value = '';
-  document.getElementById('evtDate').value = dateStr || selectedDate || getTodayStr();
-  document.getElementById('evtTime').value = '';
-  document.getElementById('evtReminder').checked = true;
-  document.getElementById('deleteEventBtn').style.display = 'none';
-  currentImageData = null;
-  currentAudioData = null;
-  document.getElementById('imagePreview').style.display = 'none';
-  document.getElementById('audioPreview').style.display = 'none';
-  document.getElementById('audioPreview').src = '';
-  switchInputTab('text');
-  document.getElementById('modalOverlay').style.display = 'flex';
+function saveNewEvent() {
+  const title = document.getElementById('addTitle').value.trim();
+  const date = document.getElementById('addDate').value;
+  const startTime = document.getElementById('addStart').value;
+  const endTime = document.getElementById('addEnd').value;
+  const description = document.getElementById('addDesc').value.trim();
+  const reminder = document.getElementById('addRemind').checked;
+
+  if (!title) { toast('请输入标题'); return; }
+  if (!date) { toast('请选择日期'); return; }
+
+  const evt = {
+    id: 'evt_' + Date.now(),
+    title,
+    date,
+    startTime: startTime || null,
+    endTime: endTime || null,
+    description,
+    reminder,
+    createdAt: Date.now()
+  };
+
+  events.push(evt);
+  saveAndRefresh();
+  closeSheet();
+  toast('✅ 日程已添加');
 }
 
-async function openEditModal(id) {
-  const e = events.find(ev => ev.id === id);
-  if (!e) return;
-  editingId = id;
-  document.getElementById('modalTitle').textContent = '编辑日程';
-  document.getElementById('eventId').value = id;
-  document.getElementById('evtDate').value = e.date;
-  document.getElementById('evtTime').value = e.time || '';
-  document.getElementById('evtReminder').checked = e.reminder;
-  document.getElementById('deleteEventBtn').style.display = 'inline-flex';
-
-  const mode = e.inputMode || 'text';
-  switchInputTab(mode);
-
-  if (mode === 'text') {
-    document.getElementById('evtTitle').value = e.title || '';
-    document.getElementById('evtDesc').value = e.description || '';
-  } else if (mode === 'image') {
-    document.getElementById('evtTitleImg').value = e.title || '';
-    document.getElementById('evtDescImg').value = e.description || '';
-    currentImageData = e.imageMediaId || null;
-    const preview = document.getElementById('imagePreview');
-    if (e.imageMediaId) {
-      try {
-        const url = await getMedia(e.imageMediaId);
-        if (url) {
-          preview.src = url;
-          preview.style.display = 'block';
-        }
-      } catch (err) { /* media not available */ }
-    } else {
-      preview.style.display = 'none';
-    }
-  } else if (mode === 'voice') {
-    document.getElementById('evtTitleVoice').value = e.title || '';
-    document.getElementById('evtDescVoice').value = e.description || '';
-    currentAudioData = e.voiceMediaId || null;
-    const audio = document.getElementById('audioPreview');
-    if (e.voiceMediaId) {
-      try {
-        const url = await getMedia(e.voiceMediaId);
-        if (url) {
-          audio.src = url;
-          audio.style.display = 'block';
-        }
-      } catch (err) { /* media not available */ }
-    } else {
-      audio.style.display = 'none';
-      audio.src = '';
-    }
-  }
-
-  document.getElementById('modalOverlay').style.display = 'flex';
+function deleteEvent(id) {
+  if (!confirm('确定删除？')) return;
+  events = events.filter(e => e.id !== id);
+  saveAndRefresh();
+  closeSheet();
+  toast('🗑️ 已删除');
 }
 
-function closeModal(evt) {
-  if (evt && evt.target !== document.getElementById('modalOverlay')) return;
-  document.getElementById('modalOverlay').style.display = 'none';
-  editingId = null;
-  stopRecording();
+function saveAndRefresh() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
+  renderTimetable();
+  checkReminders();
 }
 
-function switchInputTab(mode) {
-  document.getElementById('inputMode').value = mode;
-  ['Text','Image','Voice'].forEach(t => {
-    document.getElementById('tab'+t).classList.toggle('active', t.toLowerCase() === mode);
-    document.getElementById('panel'+t).style.display = t.toLowerCase() === mode ? 'block' : 'none';
-  });
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
 }
 
-// ==================== CRUD ====================
-async function saveEvent(evt) {
-  evt.preventDefault();
-  const mode = document.getElementById('inputMode').value;
-  const date = document.getElementById('evtDate').value;
-  const time = document.getElementById('evtTime').value;
-  const reminder = document.getElementById('evtReminder').checked;
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); }, 2000);
+}
 
-  let title, description;
-  if (mode === 'text') {
-    title = document.getElementById('evtTitle').value.trim();
-    description = document.getElementById('evtDesc').value.trim();
-  } else if (mode === 'image') {
-    title = document.getElementById('evtTitleImg').value.trim();
-    description = document.getElementById('evtDescImg').value.trim();
-  } else if (mode === 'voice') {
-    title = document.getElementById('evtTitleVoice').value.trim();
-    description = document.getElementById('evtDescVoice').value.trim();
-  }
-
-  if (!title && mode === 'text') {
-    alert('请输入日程标题');
+// ==================== VOICE + LLM ====================
+async function toggleVoice() {
+  if (isListening) {
+    stopListening();
     return;
   }
-  if (!title) title = mode === 'image' ? '📷 图片日程' : '🎤 语音日程';
-  if (!date) {
-    alert('请选择日期');
+  await startListening();
+}
+
+async function startListening() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    toast('⚠️ 当前浏览器不支持语音识别，请使用 Chrome');
     return;
   }
 
-  // Save media
-  let imageMediaId = null;
-  let voiceMediaId = null;
+  recognition = new SpeechRecognition();
+  recognition.lang = settings.lang;
+  recognition.interimResults = true;
+  recognition.continuous = false;
+  recognition.maxAlternatives = 1;
 
-  if (mode === 'image' && currentImageData) {
-    if (typeof currentImageData === 'string' && currentImageData.startsWith('media_')) {
-      imageMediaId = currentImageData;
+  const bar = document.getElementById('voiceBar');
+  const text = document.getElementById('voiceText');
+  const dot = document.getElementById('voiceDot');
+  const statusText = document.getElementById('voiceStatusText');
+  const confirm = document.getElementById('voiceConfirm');
+  const fab = document.getElementById('fabBtn');
+  const fabLabel = document.getElementById('fabLabel');
+
+  bar.style.display = 'block';
+  text.textContent = '正在听...';
+  dot.className = 'vb-dot';
+  statusText.textContent = '请说中文';
+  confirm.style.display = 'none';
+  fab.classList.add('listening');
+  fabLabel.textContent = '停止';
+  isListening = true;
+  pendingParsed = null;
+
+  let finalText = '';
+
+  recognition.onresult = (event) => {
+    let interim = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        finalText += event.results[i][0].transcript;
+      } else {
+        interim += event.results[i][0].transcript;
+      }
+    }
+    text.textContent = finalText || interim || '正在听...';
+  };
+
+  recognition.onerror = (event) => {
+    console.log('Speech error:', event.error);
+    if (event.error === 'no-speech') {
+      text.textContent = '没有听到声音，请再试一次';
+    } else if (event.error === 'aborted') {
+      // normal
     } else {
-      imageMediaId = 'media_img_' + generateId();
-      await saveMedia(imageMediaId, currentImageData);
+      text.textContent = '识别出错: ' + event.error;
     }
-  }
+    resetVoiceUI();
+  };
 
-  if (mode === 'voice' && currentAudioData) {
-    if (typeof currentAudioData === 'string' && currentAudioData.startsWith('media_')) {
-      voiceMediaId = currentAudioData;
+  recognition.onend = () => {
+    resetVoiceUI();
+    if (finalText.trim()) {
+      processWithLLM(finalText.trim());
     } else {
-      voiceMediaId = 'media_aud_' + generateId();
-      await saveMedia(voiceMediaId, currentAudioData);
-    }
-  }
-
-  if (editingId) {
-    // Update existing
-    const idx = events.findIndex(e => e.id === editingId);
-    if (idx > -1) {
-      const old = events[idx];
-      // Clean up old media if mode changed
-      if (old.imageMediaId && old.imageMediaId !== imageMediaId) await deleteMedia(old.imageMediaId);
-      if (old.voiceMediaId && old.voiceMediaId !== voiceMediaId) await deleteMedia(old.voiceMediaId);
-
-      events[idx] = {
-        ...old,
-        title,
-        description,
-        date,
-        time,
-        reminder,
-        inputMode: mode,
-        imageMediaId,
-        voiceMediaId,
-        updatedAt: Date.now(),
-      };
-    }
-  } else {
-    // Create new
-    const event = {
-      id: generateId(),
-      title,
-      description,
-      date,
-      time,
-      reminder,
-      inputMode: mode,
-      imageMediaId,
-      voiceMediaId,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    events.push(event);
-  }
-
-  saveEvents();
-  scheduleReminderCheck();
-  closeModal();
-  renderAll();
-  showToast('✅', '日程已保存', title);
-}
-
-async function deleteEvent(id) {
-  if (!confirm('确定要删除这个日程吗？')) return;
-  const e = events.find(ev => ev.id === id);
-  if (e) {
-    if (e.imageMediaId) await deleteMedia(e.imageMediaId).catch(() => {});
-    if (e.voiceMediaId) await deleteMedia(e.voiceMediaId).catch(() => {});
-  }
-  events = events.filter(ev => ev.id !== id);
-  saveEvents();
-  if (editingId === id) {
-    editingId = null;
-    closeModal();
-  }
-  renderAll();
-  showToast('🗑️', '日程已删除', e?.title || '');
-}
-
-async function deleteCurrentEvent() {
-  if (editingId) await deleteEvent(editingId);
-}
-
-// ==================== Image handling ====================
-function handleImageUpload(evt) {
-  const file = evt.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function() {
-    currentImageData = reader.result;
-    const preview = document.getElementById('imagePreview');
-    preview.src = reader.result;
-    preview.style.display = 'block';
-    // Auto-generate title from filename
-    const name = file.name.replace(/\.[^.]+$/, '');
-    if (!document.getElementById('evtTitleImg').value) {
-      document.getElementById('evtTitleImg').value = '📷 ' + name;
+      hideVoiceBar();
     }
   };
-  reader.readAsDataURL(file);
+
+  recognition.start();
 }
 
-// ==================== Voice recording ====================
-async function toggleRecording() {
-  if (mediaRecorder && mediaRecorder.state === 'recording') {
-    stopRecording();
+function stopListening() {
+  if (recognition) {
+    recognition.abort();
+    recognition = null;
+  }
+  resetVoiceUI();
+}
+
+function resetVoiceUI() {
+  const fab = document.getElementById('fabBtn');
+  const fabLabel = document.getElementById('fabLabel');
+  fab.classList.remove('listening');
+  fabLabel.textContent = '点按说话';
+  isListening = false;
+}
+
+function hideVoiceBar() {
+  document.getElementById('voiceBar').style.display = 'none';
+  document.getElementById('voiceConfirm').style.display = 'none';
+}
+
+async function processWithLLM(text) {
+  const bar = document.getElementById('voiceBar');
+  const vbText = document.getElementById('voiceText');
+  const dot = document.getElementById('voiceDot');
+  const statusText = document.getElementById('voiceStatusText');
+  const confirm = document.getElementById('voiceConfirm');
+
+  vbText.textContent = `"${text}"`;
+  dot.className = 'vb-dot thinking';
+  statusText.textContent = 'AI 解析中...';
+  bar.style.display = 'block';
+
+  let parsed = null;
+
+  if (settings.apiKey) {
+    try {
+      parsed = await callLLM(text);
+      statusText.textContent = '✅ AI 解析完成';
+      dot.className = 'vb-dot';
+    } catch (e) {
+      console.error('LLM error:', e);
+      statusText.textContent = '⚠️ API 调用失败，使用本地解析';
+      dot.className = 'vb-dot';
+      parsed = localParse(text);
+    }
+  } else {
+    // No API key, use local parser
+    await sleep(400);
+    parsed = localParse(text);
+    statusText.textContent = '✅ 本地解析完成';
+    dot.className = 'vb-dot';
+  }
+
+  if (!parsed || !parsed.title) {
+    vbText.textContent = '无法识别日程信息，请再试一次';
+    statusText.textContent = '❌ 解析失败';
+    dot.className = 'vb-dot';
+    setTimeout(hideVoiceBar, 2000);
     return;
   }
-  // Check for existing recording — confirm overwrite
-  if (currentAudioData) {
-    if (!confirm('已有录音，重新录制会覆盖。继续吗？')) return;
-  }
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    audioChunks = [];
-    mediaRecorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm' });
-    mediaRecorder.ondataavailable = (e) => {
-      if (e.data.size > 0) audioChunks.push(e.data);
-    };
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
-      const reader = new FileReader();
-      reader.onload = function() {
-        currentAudioData = reader.result;
-        const audio = document.getElementById('audioPreview');
-        audio.src = reader.result;
-        audio.style.display = 'block';
-      };
-      reader.readAsDataURL(blob);
-      stream.getTracks().forEach(t => t.stop());
-      document.getElementById('recordingStatus').textContent = '✅ 录音完成';
-      document.getElementById('recordingDot').style.display = 'none';
-      document.getElementById('recordingTime').style.display = 'none';
-      document.getElementById('recordBtn').textContent = '🎤 重新录音';
-      document.getElementById('recordBtn').className = 'btn btn-outline btn-sm';
-    };
-    mediaRecorder.start();
-    recordingSeconds = 0;
-    document.getElementById('recordBtn').textContent = '⏹ 停止录音';
-    document.getElementById('recordBtn').className = 'btn btn-danger btn-sm';
-    document.getElementById('recordingStatus').textContent = '🔴 录音中...';
-    document.getElementById('recordingDot').style.display = 'inline-block';
-    document.getElementById('recordingTime').style.display = 'inline';
-    document.getElementById('recordingTime').textContent = '00:00';
-    document.getElementById('audioPreview').style.display = 'none';
-    recordingTimer = setInterval(() => {
-      recordingSeconds++;
-      const m = Math.floor(recordingSeconds / 60);
-      const s = recordingSeconds % 60;
-      document.getElementById('recordingTime').textContent =
-        String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
-    }, 1000);
-  } catch (err) {
-    alert('无法访问麦克风: ' + err.message);
-  }
-}
 
-function stopRecording() {
-  if (mediaRecorder && mediaRecorder.state === 'recording') {
-    mediaRecorder.stop();
-  }
-  if (recordingTimer) {
-    clearInterval(recordingTimer);
-    recordingTimer = null;
-  }
-}
-
-// ==================== Reminders & Notifications ====================
-let notificationPermission = 'default';
-
-async function requestNotificationPermission() {
-  if (!('Notification' in window)) return;
-  notificationPermission = await Notification.requestPermission();
-}
-
-function showToast(icon, title, msg) {
-  const toast = document.createElement('div');
-  toast.className = 'toast';
-  toast.innerHTML = `
-    <div class="toast-icon">${icon}</div>
-    <div>
-      <div class="toast-title">${title}</div>
-      <div class="toast-time">${msg}</div>
-    </div>
+  // Show confirmation
+  pendingParsed = parsed;
+  const timeInfo = parsed.startTime ? `${parsed.startTime}-${parsed.endTime||''}` : '全天';
+  const remindInfo = parsed.reminder ? '· 🔔提醒' : '';
+  vbText.innerHTML = `<b>${escHtml(parsed.title)}</b><br><span style="font-size:12px;color:var(--muted);">📅 ${parsed.date} · ${timeInfo} ${remindInfo}</span>`;
+  confirm.innerHTML = `
+    <button class="btn-yes" onclick="confirmAdd()">✓ 添加</button>
+    <button class="btn-no" onclick="cancelAdd()">✗ 取消</button>
   `;
-  document.body.appendChild(toast);
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transition = 'opacity .3s';
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
+  confirm.style.display = 'flex';
 }
 
-function checkReminders() {
-  if (!('Notification' in window) || notificationPermission !== 'granted') return;
-
+async function callLLM(text) {
+  const today = fmtDate(new Date());
   const now = new Date();
-  const nowStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const nowTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const weekDates = getWeekDates();
+
+  const systemPrompt = `你是一个日程解析助手。根据用户的自然语言输入，提取日程信息并返回 JSON。
+
+当前时间：${today} ${nowTime}（${['周日','周一','周二','周三','周四','周五','周六'][now.getDay()]}）
+本周日期：
+- 周一: ${fmtDate(weekDates[0])}
+- 周二: ${fmtDate(weekDates[1])}
+- 周三: ${fmtDate(weekDates[2])}
+- 周四: ${fmtDate(weekDates[3])}
+- 周五: ${fmtDate(weekDates[4])}
+- 周六: ${fmtDate(weekDates[5])}
+- 周日: ${fmtDate(weekDates[6])}
+
+规则：
+1. "今天/明天/后天/大后天"等相对日期要转换为 YYYY-MM-DD 格式
+2. "下周X/下周一/下周三"等要正确计算日期（本周日期已列出，下周=本周日期+7天）
+3. "上午/下午/晚上/中午"要转换为24小时制时间：上午=06:00-12:00，中午=12:00-13:00，下午=13:00-18:00，晚上=18:00-22:00
+4. "早上8点/九点/三点半"等要转换为 HH:MM 格式
+5. "一个小时/两小时"等时长要计算结束时间
+6. 如果没有明确时间，默认 startTime 和 endTime 设为 null（全天事件）
+7. 如果提到"提醒"、"提醒我"、"别忘了"、"记得"，设置 reminder 为 true
+8. description 字段提炼用户提到的补充信息
+
+只返回 JSON，不要 markdown 代码块，不要任何其他文字：
+{"title":"日程标题","date":"YYYY-MM-DD","startTime":"HH:MM或null","endTime":"HH:MM或null","description":"补充说明或空字符串","reminder":true或false}`;
+
+  const resp = await fetch(settings.apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${settings.apiKey}`
+    },
+    body: JSON.stringify({
+      model: settings.model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: text }
+      ],
+      temperature: 0.1,
+      max_tokens: 500
+    })
+  });
+
+  if (!resp.ok) {
+    throw new Error(`API ${resp.status}: ${await resp.text().then(t=>t.slice(0,200))}`);
+  }
+
+  const data = await resp.json();
+  const content = data.choices?.[0]?.message?.content || '';
+  // Extract JSON from response (handle possible markdown wrapping)
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('No JSON in response: ' + content);
+  return JSON.parse(jsonMatch[0]);
+}
+
+function localParse(text) {
+  const today = fmtDate(new Date());
+  const weekDates = getWeekDates();
+  const dayMap = {
+    '今天': today,
+    '明天': fmtDate(new Date(Date.now() + 86400000)),
+    '后天': fmtDate(new Date(Date.now() + 172800000)),
+    '大后天': fmtDate(new Date(Date.now() + 259200000)),
+  };
+  // Weekday aliases
+  const weekdayMap = {};
+  ['周一','周二','周三','周四','周五','周六','周日','星期一','星期二','星期三','星期四','星期五','星期六','星期日','礼拜一','礼拜二','礼拜三','礼拜四','礼拜五','礼拜六','礼拜天'].forEach((name, i) => {
+    weekdayMap[name] = fmtDate(weekDates[i % 7]);
+  });
+
+  // Default
+  let date = today;
+  let startTime = null;
+  let endTime = null;
+  let reminder = false;
+  let title = text;
+  let description = '';
+
+  // Check reminders
+  if (/提醒|别忘了|记得|通知|叫我/.test(text)) {
+    reminder = true;
+  }
+
+  // Extract date
+  for (const [word, d] of Object.entries(dayMap)) {
+    if (text.includes(word)) { date = d; break; }
+  }
+  if (date === today) {
+    for (const [word, d] of Object.entries(weekdayMap)) {
+      if (text.includes(word)) {
+        const wd = new Date(d);
+        // If the date is before today, assume next week
+        if (wd < new Date(today)) wd.setDate(wd.getDate() + 7);
+        date = fmtDate(wd);
+        break;
+      }
+    }
+  }
+
+  // Extract time
+  const timePatterns = [
+    /(\d{1,2})[点:：](\d{0,2})?\s*[分]?/g,
+    /(上午|中午|下午|晚上|早上|早晨)\s*(\d{1,2})[点:：]?(\d{0,2})?/g,
+    /(\d{1,2})[点:：]半/g,
+  ];
+
+  let times = [];
+  // Simple time matching
+  const simpleMatch = text.match(/(\d{1,2})[点:：](\d{2})?/g);
+  if (simpleMatch) {
+    for (const m of simpleMatch) {
+      const parts = m.match(/(\d{1,2})[点:：](\d{2})?/);
+      if (parts) {
+        let h = parseInt(parts[1]);
+        const min = parts[2] ? parseInt(parts[2]) : 0;
+
+        // AM/PM adjustment
+        if (/下午|晚上|傍晚/.test(text) && h < 12) h += 12;
+        if (/上午|早上|早晨/.test(text) && h === 12) h = 0;
+        // If no explicit AM/PM and h <= 6, likely PM (afternoon context)
+        if (!/[上中下]午|晚上|早上|早晨|傍晚/.test(text) && h <= 6 && h >= 1) {
+          h += 12;
+        }
+
+        times.push(`${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`);
+      }
+    }
+  }
+
+  if (times.length >= 2) {
+    startTime = times[0];
+    endTime = times[1];
+  } else if (times.length === 1) {
+    startTime = times[0];
+    // Default duration: 1 hour
+    const h = parseInt(startTime);
+    endTime = `${String(h+1).padStart(2,'0')}:00`;
+  }
+
+  // Clean title: remove time/date words
+  title = title
+    .replace(/今天|明天|后天|大后天/g, '')
+    .replace(/下周[一二三四五六日天]/g, '')
+    .replace(/[周礼拜][一二三四五六日天]/g, '')
+    .replace(/\d{1,2}[点:：]\d{0,2}[分]?/g, '')
+    .replace(/提醒[我]?|别忘了|记得|通知[我]?|叫我/g, '')
+    .replace(/[上中下]午|晚上|早上|早晨|傍晚/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!title) title = '未命名日程';
+
+  return { title, date, startTime, endTime, description, reminder };
+}
+
+function confirmAdd() {
+  if (!pendingParsed) return;
+  const p = pendingParsed;
+  const evt = {
+    id: 'evt_' + Date.now(),
+    title: p.title || '未命名',
+    date: p.date,
+    startTime: p.startTime || null,
+    endTime: p.endTime || null,
+    description: p.description || '',
+    reminder: p.reminder || false,
+    createdAt: Date.now()
+  };
+  events.push(evt);
+  saveAndRefresh();
+  hideVoiceBar();
+  pendingParsed = null;
+  toast('✅ 已添加: ' + evt.title);
+}
+
+function cancelAdd() {
+  pendingParsed = null;
+  hideVoiceBar();
+  toast('已取消');
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ==================== SETTINGS ====================
+function openSettings() {
+  document.getElementById('cfgApiUrl').value = settings.apiUrl;
+  document.getElementById('cfgApiKey').value = settings.apiKey;
+  document.getElementById('cfgModel').value = settings.model;
+  document.getElementById('cfgLang').value = settings.lang;
+  document.getElementById('settingsPanel').style.display = 'flex';
+}
+
+function closeSettings() {
+  document.getElementById('settingsPanel').style.display = 'none';
+}
+
+function saveSettings() {
+  settings.apiUrl = document.getElementById('cfgApiUrl').value.trim();
+  settings.apiKey = document.getElementById('cfgApiKey').value.trim();
+  settings.model = document.getElementById('cfgModel').value.trim();
+  settings.lang = document.getElementById('cfgLang').value;
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  closeSettings();
+  toast('✅ 设置已保存');
+}
+
+// ==================== NAVIGATION ====================
+function changeWeek(delta) {
+  weekOffset += delta;
+  renderTimetable();
+}
+
+function goThisWeek() {
+  weekOffset = 0;
+  renderTimetable();
+}
+
+// ==================== REMINDERS ====================
+function checkReminders() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const now = new Date();
+  const nowStr = fmtDate(now);
+  const nowMin = now.getHours() * 60 + now.getMinutes();
 
   events.forEach(e => {
-    if (!e.reminder || !e.time || e.date !== nowStr) return;
-    const [h, m] = e.time.split(':').map(Number);
-    const eventMinutes = h * 60 + m;
-    const diff = eventMinutes - nowMinutes;
-    // Notify if within 15 min window and not already notified this minute
+    if (!e.reminder || !e.startTime || e.date !== nowStr) return;
+    const [h, m] = e.startTime.split(':').map(Number);
+    const evtMin = h * 60 + m;
+    const diff = evtMin - nowMin;
     if (diff >= 0 && diff <= 15) {
-      const notifyKey = `notified_${e.id}_${nowStr}_${Math.floor(nowMinutes/5)}`;
-      if (!sessionStorage.getItem(notifyKey)) {
-        sessionStorage.setItem(notifyKey, '1');
+      const key = `n_${e.id}_${nowStr}_${Math.floor(nowMin/5)}`;
+      if (!sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, '1');
         new Notification('🔔 日程提醒', {
-          body: `${e.title}\n${e.time?.slice(0,5)} · ${diff === 0 ? '现在开始！' : `${diff}分钟后开始`}`,
-          icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📅</text></svg>',
+          body: `${e.title}\n${e.startTime.slice(0,5)} · ${diff===0?'现在！':diff+'分钟后'}`,
           tag: e.id,
-          requireInteraction: true,
+          requireInteraction: true
         });
-        showToast('🔔', '日程提醒', `${e.title} - ${diff === 0 ? '现在开始！' : diff + '分钟后'}`);
+        toast(`🔔 ${e.title} ${diff===0?'现在开始':diff+'分钟后'}`);
       }
     }
   });
 }
 
-function scheduleReminderCheck() {
-  // Check every 30 seconds
-  if (window._reminderInterval) clearInterval(window._reminderInterval);
-  window._reminderInterval = setInterval(checkReminders, 30000);
-  checkReminders(); // Check immediately
-}
-
-// ==================== View media ====================
-async function viewEventMedia(id) {
-  const e = events.find(ev => ev.id === id);
-  if (!e) return;
-
-  let mediaHtml = '';
-  if (e.imageMediaId) {
-    try {
-      const url = await getMedia(e.imageMediaId);
-      if (url) mediaHtml += `<img src="${url}" style="max-width:100%;max-height:400px;border-radius:8px;">`;
-    } catch (err) { mediaHtml += '<p>图片加载失败</p>'; }
+// ==================== INIT ====================
+function init() {
+  renderTimetable();
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
   }
-  if (e.voiceMediaId) {
-    try {
-      const url = await getMedia(e.voiceMediaId);
-      if (url) mediaHtml += `<audio controls src="${url}" style="width:100%;margin-top:8px;"></audio>`;
-    } catch (err) { mediaHtml += '<p>语音加载失败</p>'; }
-  }
-
-  if (!mediaHtml) {
-    alert('该日程没有附加媒体文件');
-    return;
-  }
-
-  // Simple media viewer
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:150;';
-  overlay.innerHTML = `
-    <div style="background:#fff;border-radius:16px;padding:24px;max-width:500px;max-height:80vh;overflow-y:auto;position:relative;">
-      <h3 style="margin-bottom:12px;">${escapeHtml(e.title)}</h3>
-      ${mediaHtml}
-      ${e.description ? `<p style="margin-top:8px;color:var(--text-muted);">${escapeHtml(e.description)}</p>` : ''}
-      <button style="position:absolute;top:8px;right:12px;background:none;border:none;font-size:24px;cursor:pointer;" onclick="this.closest('div').parentElement.remove()">×</button>
-    </div>
-  `;
-  overlay.addEventListener('click', function(ev) {
-    if (ev.target === overlay) overlay.remove();
-  });
-  document.body.appendChild(overlay);
-}
-
-// ==================== Navigation ====================
-function changeMonth(delta) {
-  currentMonth += delta;
-  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
-  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
-  renderAll();
-}
-
-function goToToday() {
-  const today = new Date();
-  currentMonth = today.getMonth();
-  currentYear = today.getFullYear();
-  selectedDate = getTodayStr();
-  renderAll();
-}
-
-// ==================== Keyboard shortcuts ====================
-document.addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-  switch (e.key) {
-    case 'n': openAddModal(); break;
-    case 't': goToToday(); break;
-    case 'ArrowLeft': if (e.ctrlKey || e.metaKey) changeMonth(-1); break;
-    case 'ArrowRight': if (e.ctrlKey || e.metaKey) changeMonth(1); break;
-    case 'Escape': closeModal(); break;
-  }
-});
-
-// ==================== Init ====================
-async function init() {
-  await openDB();
-  selectedDate = getTodayStr();
-  renderAll();
-  requestNotificationPermission();
-  scheduleReminderCheck();
+  setInterval(checkReminders, 30000);
+  checkReminders();
 }
 
 init();

@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📅 智能日程管家</title>
+<style>
+:root {
+  --primary: #4f46e5;
+  --primary-light: #e0e7ff;
+  --danger: #ef4444;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --bg: #f8fafc;
+  --card: #fff;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.04);
+  --radius: 12px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+}
+/* Sidebar */
+.sidebar {
+  width: 320px;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+}
+.logo {
+  font-size: 24px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--primary), #7c3aed);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+.btn:active { transform: scale(.97); }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: #4338ca; }
+.btn-outline { background: #fff; color: var(--primary); border: 2px solid var(--primary); }
+.btn-outline:hover { background: var(--primary-light); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-block { width: 100%; justify-content: center; }
+/* Main */
+.main {
+  flex: 1;
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  overflow-y: auto;
+  height: 100vh;
+}
+/* Quick view cards */
+.quick-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.quick-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  border-left: 4px solid var(--primary);
+  cursor: pointer;
+  transition: transform .15s;
+}
+.quick-card:hover { transform: translateY(-2px); }
+.quick-card.today { border-left-color: var(--warning); }
+.quick-card.upcoming { border-left-color: var(--success); }
+.quick-card .qc-icon { font-size: 28px; margin-bottom: 8px; }
+.quick-card .qc-label { font-size: 13px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+.quick-card .qc-count { font-size: 32px; font-weight: 800; }
+/* Calendar */
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.calendar-header h2 { font-size: 18px; font-weight: 700; }
+.calendar-nav { display: flex; gap: 4px; }
+.calendar-nav button {
+  width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--card); cursor: pointer; font-size: 14px;
+}
+.calendar-nav button:hover { background: var(--primary-light); }
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.calendar-grid .day-header {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding: 8px 0;
+}
+.calendar-grid .day {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  position: relative;
+  transition: all .1s;
+}
+.calendar-grid .day:hover { background: var(--primary-light); }
+.calendar-grid .day.today { background: var(--primary); color: #fff; font-weight: 700; }
+.calendar-grid .day.other-month { color: #cbd5e1; }
+.calendar-grid .day.has-event::after {
+  content: '';
+  width: 5px; height: 5px;
+  background: var(--danger);
+  border-radius: 50%;
+  position: absolute;
+  bottom: 4px;
+}
+.calendar-grid .day.today.has-event::after { background: #fff; }
+.calendar-grid .day.selected { box-shadow: 0 0 0 2px var(--primary); }
+/* Events list */
+.section-title {
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.event-list { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
+.event-item {
+  background: var(--card);
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  transition: transform .1s;
+  cursor: pointer;
+}
+.event-item:hover { transform: translateX(4px); }
+.event-item .ei-time {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  min-width: 48px;
+  text-align: center;
+  background: var(--primary-light);
+  border-radius: 6px;
+  padding: 4px 6px;
+}
+.event-item .ei-info { flex: 1; }
+.event-item .ei-title { font-weight: 600; font-size: 14px; }
+.event-item .ei-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.event-item .ei-meta { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+.event-item .ei-tag {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.ei-tag.reminder { background: #fef3c7; color: #92400e; }
+.ei-tag.image { background: #dbeafe; color: #1e40af; }
+.ei-tag.voice { background: #ede9fe; color: #6d28d9; }
+.event-item .ei-actions { display: flex; gap: 4px; }
+.empty-state {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px 20px;
+}
+.empty-state .es-icon { font-size: 48px; margin-bottom: 8px; }
+/* Modal */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn .2s;
+}
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+.modal {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 28px;
+  width: 480px;
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.15);
+  animation: slideUp .25s;
+}
+@keyframes slideUp { from { transform:translateY(20px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+.modal h3 { font-size: 20px; margin-bottom: 20px; }
+.form-group { margin-bottom: 16px; }
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.form-group input, .form-group textarea, .form-group select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color .15s;
+}
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.form-group textarea { resize: vertical; min-height: 60px; }
+.form-row { display: flex; gap: 12px; }
+.form-row .form-group { flex:1; }
+/* Input tabs */
+.input-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+.input-tab {
+  flex: 1;
+  padding: 8px;
+  text-align: center;
+  border-radius: 8px;
+  background: #f1f5f9;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all .15s;
+}
+.input-tab.active { background: var(--primary); color: #fff; }
+.input-tab:hover:not(.active) { background: var(--primary-light); }
+/* Image upload area */
+.upload-area {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .15s;
+}
+.upload-area:hover { border-color: var(--primary); background: var(--primary-light); }
+.upload-area img { max-width: 100%; max-height: 200px; border-radius: 8px; margin-top: 8px; }
+.upload-area .ua-icon { font-size: 36px; }
+/* Voice recorder */
+.voice-recorder {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+.recording-dot {
+  width: 12px; height: 12px;
+  background: var(--danger);
+  border-radius: 50%;
+  animation: pulse 1s infinite;
+}
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+.recording-time { font-variant-numeric: tabular-nums; font-weight: 600; }
+/* Notification toast */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: var(--card);
+  border-radius: 10px;
+  padding: 16px 20px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.12);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: slideIn .3s;
+  border-left: 4px solid var(--warning);
+}
+@keyframes slideIn { from { transform:translateX(100%); } to { transform:translateX(0); } }
+.toast .toast-icon { font-size: 28px; }
+.toast .toast-title { font-weight: 700; font-size: 14px; }
+.toast .toast-time { font-size: 12px; color: var(--text-muted); }
+/* Responsive */
+@media (max-width: 768px) {
+  body { flex-direction: column; }
+  .sidebar { width: 100%; height: auto; position: static; }
+  .main { height: auto; padding: 16px; }
+  .quick-cards { grid-template-columns: repeat(3, 1fr); }
+  .calendar-grid .day { font-size: 11px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="logo">📅 智能日程管家</div>
+
+  <button class="btn btn-primary btn-block" onclick="openAddModal()">➕ 新建日程</button>
+
+  <!-- Quick stats -->
+  <div class="quick-cards" style="grid-template-columns:1fr;">
+    <div class="quick-card today" onclick="goToToday()">
+      <div class="qc-icon">📌</div>
+      <div class="qc-label">今日日程</div>
+      <div class="qc-count" id="todayCount">0</div>
+    </div>
+    <div class="quick-card upcoming">
+      <div class="qc-icon">📋</div>
+      <div class="qc-label">即将到来</div>
+      <div class="qc-count" id="upcomingCount">0</div>
+    </div>
+  </div>
+
+  <!-- Upcoming events -->
+  <div>
+    <div class="section-title">🔔 即将到来的日程</div>
+    <div class="event-list" id="upcomingList">
+      <div class="empty-state">
+        <div class="es-icon">📭</div>
+        <p>暂无日程安排</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:auto; font-size:11px; color:var(--text-muted); text-align:center; padding-top:16px;">
+    数据存储在浏览器本地<br>🔒 隐私安全
+  </div>
+</aside>
+
+<!-- Main -->
+<main class="main">
+  <!-- Calendar -->
+  <div>
+    <div class="calendar-header">
+      <h2 id="monthLabel"></h2>
+      <div class="calendar-nav">
+        <button onclick="changeMonth(-1)" title="上一月">◀</button>
+        <button onclick="goToToday()" style="width:auto;padding:0 12px;font-size:12px;">今天</button>
+        <button onclick="changeMonth(1)" title="下一月">▶</button>
+      </div>
+    </div>
+    <div class="calendar-grid" id="calendarGrid"></div>
+  </div>
+
+  <!-- Selected date events -->
+  <div>
+    <div class="section-title">
+      <span id="selectedDateLabel">📅 选择日期查看日程</span>
+      <button class="btn btn-outline btn-sm" onclick="openAddModal()">+ 添加</button>
+    </div>
+    <div class="event-list" id="dayEventList">
+      <div class="empty-state">
+        <div class="es-icon">👆</div>
+        <p>点击日历中的日期查看当天日程</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="modalOverlay" style="display:none;" onclick="closeModal(event)">
+  <div class="modal" id="modalBox" onclick="event.stopPropagation()">
+    <h3 id="modalTitle">新建日程</h3>
+
+    <!-- Input mode tabs -->
+    <div class="input-tabs">
+      <div class="input-tab active" onclick="switchInputTab('text')" id="tabText">✏️ 文字</div>
+      <div class="input-tab" onclick="switchInputTab('image')" id="tabImage">🖼️ 图片</div>
+      <div class="input-tab" onclick="switchInputTab('voice')" id="tabVoice">🎤 语音</div>
+    </div>
+
+    <form id="eventForm" onsubmit="saveEvent(event)">
+      <input type="hidden" id="eventId">
+      <input type="hidden" id="inputMode" value="text">
+
+      <!-- Text input -->
+      <div id="panelText">
+        <div class="form-group">
+          <label>标题 *</label>
+          <input type="text" id="evtTitle" placeholder="例如：团队周会" required>
+        </div>
+        <div class="form-group">
+          <label>描述</label>
+          <textarea id="evtDesc" placeholder="添加详细描述..."></textarea>
+        </div>
+      </div>
+
+      <!-- Image input -->
+      <div id="panelImage" style="display:none;">
+        <div class="form-group">
+          <label>标题</label>
+          <input type="text" id="evtTitleImg" placeholder="为图片日程命名">
+        </div>
+        <div class="upload-area" id="uploadArea" onclick="document.getElementById('imageInput').click()">
+          <div class="ua-icon">📷</div>
+          <p>点击上传图片</p>
+          <p style="font-size:11px;color:var(--text-muted);">支持 JPG/PNG/GIF</p>
+          <img id="imagePreview" style="display:none;">
+        </div>
+        <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
+        <div class="form-group" style="margin-top:12px;">
+          <label>图片说明</label>
+          <textarea id="evtDescImg" placeholder="描述这张图片相关的日程..."></textarea>
+        </div>
+      </div>
+
+      <!-- Voice input -->
+      <div id="panelVoice" style="display:none;">
+        <div class="form-group">
+          <label>标题</label>
+          <input type="text" id="evtTitleVoice" placeholder="为语音日程命名">
+        </div>
+        <div class="voice-recorder">
+          <button type="button" class="btn btn-danger btn-sm" id="recordBtn" onclick="toggleRecording()">🎤 开始录音</button>
+          <span id="recordingStatus" style="font-size:13px;color:var(--text-muted);">点击开始录音</span>
+          <span id="recordingDot" class="recording-dot" style="display:none;"></span>
+          <span id="recordingTime" class="recording-time" style="display:none;">00:00</span>
+        </div>
+        <audio id="audioPreview" controls style="display:none;width:100%;margin-top:8px;"></audio>
+        <div class="form-group" style="margin-top:12px;">
+          <label>语音备注</label>
+          <textarea id="evtDescVoice" placeholder="添加补充说明..."></textarea>
+        </div>
+      </div>
+
+      <!-- Common fields -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>日期 *</label>
+          <input type="date" id="evtDate" required>
+        </div>
+        <div class="form-group">
+          <label>时间</label>
+          <input type="time" id="evtTime">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="evtReminder" checked style="width:auto;margin-right:6px;">
+          开启提醒（提前15分钟）
+        </label>
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">
+        <button type="button" class="btn btn-outline" onclick="closeModal()">取消</button>
+        <button type="button" class="btn btn-danger btn-sm" id="deleteEventBtn" style="display:none;margin-right:auto;" onclick="deleteCurrentEvent()">删除</button>
+        <button type="submit" class="btn btn-primary">💾 保存日程</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// ==================== Data Layer ====================
+const STORAGE_KEY = 'schedule_app_events';
+let events = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+let selectedDate = null;
+let editingId = null;
+let currentImageData = null;
+let currentAudioData = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let recordingTimer = null;
+let recordingSeconds = 0;
+
+// IndexedDB for media blobs
+let db = null;
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('ScheduleAppDB', 1);
+    req.onupgradeneeded = () => {
+      const d = req.result;
+      if (!d.objectStoreNames.contains('media')) {
+        d.createObjectStore('media', { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = () => { db = req.result; resolve(db); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function saveMedia(id, dataUrl) {
+  if (!db) await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('media', 'readwrite');
+    const store = tx.objectStore('media');
+    // Convert dataUrl to blob for storage efficiency
+    fetch(dataUrl).then(r => r.blob()).then(blob => {
+      store.put({ id, blob, createdAt: Date.now() });
+      tx.oncomplete = () => resolve();
+    }).catch(reject);
+  });
+}
+
+async function getMedia(id) {
+  if (!db) await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('media', 'readonly');
+    const store = tx.objectStore('media');
+    const req = store.get(id);
+    req.onsuccess = () => {
+      if (!req.result) return resolve(null);
+      const blob = req.result.blob;
+      const url = URL.createObjectURL(blob);
+      resolve(url);
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function deleteMedia(id) {
+  if (!db) await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('media', 'readwrite');
+    const store = tx.objectStore('media');
+    store.delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+function saveEvents() {
+  // Store metadata + media IDs in localStorage, binary blobs in IndexedDB
+  const meta = events.map(e => ({
+    id: e.id,
+    title: e.title,
+    description: e.description,
+    date: e.date,
+    time: e.time,
+    reminder: e.reminder,
+    inputMode: e.inputMode,
+    imageMediaId: e.imageMediaId || null,
+    voiceMediaId: e.voiceMediaId || null,
+    createdAt: e.createdAt,
+    updatedAt: e.updatedAt,
+  }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(meta));
+}
+
+function generateId() {
+  return 'evt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+function getEventsForDate(dateStr) {
+  return events.filter(e => e.date === dateStr).sort((a, b) => (a.time || '23:59').localeCompare(b.time || '23:59'));
+}
+
+function getTodayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ==================== Rendering ====================
+function renderCalendar() {
+  const grid = document.getElementById('calendarGrid');
+  const label = document.getElementById('monthLabel');
+  const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  label.textContent = `${currentYear}年 ${months[currentMonth]}`;
+
+  const dayHeaders = ['日','一','二','三','四','五','六'];
+  let html = dayHeaders.map(d => `<div class="day-header">${d}</div>`).join('');
+
+  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
+  const todayStr = getTodayStr();
+
+  // Previous month padding
+  for (let i = firstDay - 1; i >= 0; i--) {
+    const d = daysInPrevMonth - i;
+    const m = currentMonth === 0 ? 11 : currentMonth - 1;
+    const y = currentMonth === 0 ? currentYear - 1 : currentYear;
+    const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const hasEvent = events.some(e => e.date === dateStr);
+    html += `<div class="day other-month${hasEvent?' has-event':''}" data-date="${dateStr}">${d}</div>`;
+  }
+
+  // Current month
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = dateStr === todayStr;
+    const hasEvent = events.some(e => e.date === dateStr);
+    const isSelected = selectedDate === dateStr;
+    html += `<div class="day${isToday?' today':''}${hasEvent?' has-event':''}${isSelected?' selected':''}" data-date="${dateStr}">${d}</div>`;
+  }
+
+  // Next month padding
+  const totalCells = firstDay + daysInMonth;
+  const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+  for (let d = 1; d <= remaining; d++) {
+    const m = currentMonth === 11 ? 0 : currentMonth + 1;
+    const y = currentMonth === 11 ? currentYear + 1 : currentYear;
+    const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const hasEvent = events.some(e => e.date === dateStr);
+    html += `<div class="day other-month${hasEvent?' has-event':''}" data-date="${dateStr}">${d}</div>`;
+  }
+
+  grid.innerHTML = html;
+
+  // Click handlers
+  grid.querySelectorAll('.day').forEach(el => {
+    el.addEventListener('click', () => {
+      const dateStr = el.dataset.date;
+      selectedDate = dateStr;
+      // Update month if clicking other-month day
+      const [y, m] = dateStr.split('-').map(Number);
+      if (m - 1 !== currentMonth || y !== currentYear) {
+        currentMonth = m - 1;
+        currentYear = y;
+      }
+      renderAll();
+    });
+  });
+}
+
+function renderDayEvents() {
+  const list = document.getElementById('dayEventList');
+  const label = document.getElementById('selectedDateLabel');
+  if (!selectedDate) {
+    label.textContent = '📅 选择日期查看日程';
+    list.innerHTML = '<div class="empty-state"><div class="es-icon">👆</div><p>点击日历中的日期查看当天日程</p></div>';
+    return;
+  }
+  label.textContent = `📅 ${selectedDate} 的日程`;
+  const dayEvents = getEventsForDate(selectedDate);
+  if (dayEvents.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="es-icon">📭</div><p>${selectedDate} 暂无日程</p><button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="openAddModal()">+ 添加日程</button></div>`;
+    return;
+  }
+  list.innerHTML = dayEvents.map(e => renderEventItem(e)).join('');
+}
+
+async function renderUpcomingList() {
+  const list = document.getElementById('upcomingList');
+  const today = getTodayStr();
+  const upcoming = events
+    .filter(e => e.date >= today)
+    .sort((a, b) => (a.date + (a.time||'23:59')).localeCompare(b.date + (b.time||'23:59')))
+    .slice(0, 8);
+
+  if (upcoming.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="es-icon">📭</div><p>暂无日程安排</p></div>';
+  } else {
+    list.innerHTML = upcoming.map(e => renderEventItem(e)).join('');
+  }
+
+  // Stats
+  const todayEvents = events.filter(e => e.date === today).length;
+  document.getElementById('todayCount').textContent = todayEvents;
+  document.getElementById('upcomingCount').textContent = upcoming.length;
+}
+
+function renderEventItem(e) {
+  const timeStr = e.time ? e.time.slice(0, 5) : '全天';
+  const tags = [];
+  if (e.reminder) tags.push('<span class="ei-tag reminder">🔔 提醒</span>');
+  if (e.inputMode === 'image' || e.imageMediaId) tags.push('<span class="ei-tag image">🖼️ 图片</span>');
+  if (e.inputMode === 'voice' || e.voiceMediaId) tags.push('<span class="ei-tag voice">🎤 语音</span>');
+
+  return `
+    <div class="event-item" onclick="openEditModal('${e.id}')">
+      <div class="ei-time">${timeStr}</div>
+      <div class="ei-info">
+        <div class="ei-title">${escapeHtml(e.title || '未命名日程')}</div>
+        ${e.description ? `<div class="ei-desc">${escapeHtml(e.description.slice(0, 60))}${e.description.length>60?'...':''}</div>` : ''}
+        <div class="ei-meta">${tags.join('')}</div>
+      </div>
+      <div class="ei-actions" onclick="event.stopPropagation()">
+        <button class="btn btn-outline btn-sm" onclick="viewEventMedia('${e.id}')" title="查看媒体">👁️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteEvent('${e.id}')" title="删除">🗑️</button>
+      </div>
+    </div>
+  `;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function renderAll() {
+  renderCalendar();
+  renderDayEvents();
+  renderUpcomingList();
+}
+
+// ==================== Modal ====================
+function openAddModal(dateStr) {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = '新建日程';
+  document.getElementById('eventId').value = '';
+  document.getElementById('evtTitle').value = '';
+  document.getElementById('evtDesc').value = '';
+  document.getElementById('evtDate').value = dateStr || selectedDate || getTodayStr();
+  document.getElementById('evtTime').value = '';
+  document.getElementById('evtReminder').checked = true;
+  document.getElementById('deleteEventBtn').style.display = 'none';
+  currentImageData = null;
+  currentAudioData = null;
+  document.getElementById('imagePreview').style.display = 'none';
+  document.getElementById('audioPreview').style.display = 'none';
+  document.getElementById('audioPreview').src = '';
+  switchInputTab('text');
+  document.getElementById('modalOverlay').style.display = 'flex';
+}
+
+async function openEditModal(id) {
+  const e = events.find(ev => ev.id === id);
+  if (!e) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = '编辑日程';
+  document.getElementById('eventId').value = id;
+  document.getElementById('evtDate').value = e.date;
+  document.getElementById('evtTime').value = e.time || '';
+  document.getElementById('evtReminder').checked = e.reminder;
+  document.getElementById('deleteEventBtn').style.display = 'inline-flex';
+
+  const mode = e.inputMode || 'text';
+  switchInputTab(mode);
+
+  if (mode === 'text') {
+    document.getElementById('evtTitle').value = e.title || '';
+    document.getElementById('evtDesc').value = e.description || '';
+  } else if (mode === 'image') {
+    document.getElementById('evtTitleImg').value = e.title || '';
+    document.getElementById('evtDescImg').value = e.description || '';
+    currentImageData = e.imageMediaId || null;
+    const preview = document.getElementById('imagePreview');
+    if (e.imageMediaId) {
+      try {
+        const url = await getMedia(e.imageMediaId);
+        if (url) {
+          preview.src = url;
+          preview.style.display = 'block';
+        }
+      } catch (err) { /* media not available */ }
+    } else {
+      preview.style.display = 'none';
+    }
+  } else if (mode === 'voice') {
+    document.getElementById('evtTitleVoice').value = e.title || '';
+    document.getElementById('evtDescVoice').value = e.description || '';
+    currentAudioData = e.voiceMediaId || null;
+    const audio = document.getElementById('audioPreview');
+    if (e.voiceMediaId) {
+      try {
+        const url = await getMedia(e.voiceMediaId);
+        if (url) {
+          audio.src = url;
+          audio.style.display = 'block';
+        }
+      } catch (err) { /* media not available */ }
+    } else {
+      audio.style.display = 'none';
+      audio.src = '';
+    }
+  }
+
+  document.getElementById('modalOverlay').style.display = 'flex';
+}
+
+function closeModal(evt) {
+  if (evt && evt.target !== document.getElementById('modalOverlay')) return;
+  document.getElementById('modalOverlay').style.display = 'none';
+  editingId = null;
+  stopRecording();
+}
+
+function switchInputTab(mode) {
+  document.getElementById('inputMode').value = mode;
+  ['Text','Image','Voice'].forEach(t => {
+    document.getElementById('tab'+t).classList.toggle('active', t.toLowerCase() === mode);
+    document.getElementById('panel'+t).style.display = t.toLowerCase() === mode ? 'block' : 'none';
+  });
+}
+
+// ==================== CRUD ====================
+async function saveEvent(evt) {
+  evt.preventDefault();
+  const mode = document.getElementById('inputMode').value;
+  const date = document.getElementById('evtDate').value;
+  const time = document.getElementById('evtTime').value;
+  const reminder = document.getElementById('evtReminder').checked;
+
+  let title, description;
+  if (mode === 'text') {
+    title = document.getElementById('evtTitle').value.trim();
+    description = document.getElementById('evtDesc').value.trim();
+  } else if (mode === 'image') {
+    title = document.getElementById('evtTitleImg').value.trim();
+    description = document.getElementById('evtDescImg').value.trim();
+  } else if (mode === 'voice') {
+    title = document.getElementById('evtTitleVoice').value.trim();
+    description = document.getElementById('evtDescVoice').value.trim();
+  }
+
+  if (!title && mode === 'text') {
+    alert('请输入日程标题');
+    return;
+  }
+  if (!title) title = mode === 'image' ? '📷 图片日程' : '🎤 语音日程';
+  if (!date) {
+    alert('请选择日期');
+    return;
+  }
+
+  // Save media
+  let imageMediaId = null;
+  let voiceMediaId = null;
+
+  if (mode === 'image' && currentImageData) {
+    if (typeof currentImageData === 'string' && currentImageData.startsWith('media_')) {
+      imageMediaId = currentImageData;
+    } else {
+      imageMediaId = 'media_img_' + generateId();
+      await saveMedia(imageMediaId, currentImageData);
+    }
+  }
+
+  if (mode === 'voice' && currentAudioData) {
+    if (typeof currentAudioData === 'string' && currentAudioData.startsWith('media_')) {
+      voiceMediaId = currentAudioData;
+    } else {
+      voiceMediaId = 'media_aud_' + generateId();
+      await saveMedia(voiceMediaId, currentAudioData);
+    }
+  }
+
+  if (editingId) {
+    // Update existing
+    const idx = events.findIndex(e => e.id === editingId);
+    if (idx > -1) {
+      const old = events[idx];
+      // Clean up old media if mode changed
+      if (old.imageMediaId && old.imageMediaId !== imageMediaId) await deleteMedia(old.imageMediaId);
+      if (old.voiceMediaId && old.voiceMediaId !== voiceMediaId) await deleteMedia(old.voiceMediaId);
+
+      events[idx] = {
+        ...old,
+        title,
+        description,
+        date,
+        time,
+        reminder,
+        inputMode: mode,
+        imageMediaId,
+        voiceMediaId,
+        updatedAt: Date.now(),
+      };
+    }
+  } else {
+    // Create new
+    const event = {
+      id: generateId(),
+      title,
+      description,
+      date,
+      time,
+      reminder,
+      inputMode: mode,
+      imageMediaId,
+      voiceMediaId,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    events.push(event);
+  }
+
+  saveEvents();
+  scheduleReminderCheck();
+  closeModal();
+  renderAll();
+  showToast('✅', '日程已保存', title);
+}
+
+async function deleteEvent(id) {
+  if (!confirm('确定要删除这个日程吗？')) return;
+  const e = events.find(ev => ev.id === id);
+  if (e) {
+    if (e.imageMediaId) await deleteMedia(e.imageMediaId).catch(() => {});
+    if (e.voiceMediaId) await deleteMedia(e.voiceMediaId).catch(() => {});
+  }
+  events = events.filter(ev => ev.id !== id);
+  saveEvents();
+  if (editingId === id) {
+    editingId = null;
+    closeModal();
+  }
+  renderAll();
+  showToast('🗑️', '日程已删除', e?.title || '');
+}
+
+async function deleteCurrentEvent() {
+  if (editingId) await deleteEvent(editingId);
+}
+
+// ==================== Image handling ====================
+function handleImageUpload(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function() {
+    currentImageData = reader.result;
+    const preview = document.getElementById('imagePreview');
+    preview.src = reader.result;
+    preview.style.display = 'block';
+    // Auto-generate title from filename
+    const name = file.name.replace(/\.[^.]+$/, '');
+    if (!document.getElementById('evtTitleImg').value) {
+      document.getElementById('evtTitleImg').value = '📷 ' + name;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+// ==================== Voice recording ====================
+async function toggleRecording() {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    stopRecording();
+    return;
+  }
+  // Check for existing recording — confirm overwrite
+  if (currentAudioData) {
+    if (!confirm('已有录音，重新录制会覆盖。继续吗？')) return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm' });
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) audioChunks.push(e.data);
+    };
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+      const reader = new FileReader();
+      reader.onload = function() {
+        currentAudioData = reader.result;
+        const audio = document.getElementById('audioPreview');
+        audio.src = reader.result;
+        audio.style.display = 'block';
+      };
+      reader.readAsDataURL(blob);
+      stream.getTracks().forEach(t => t.stop());
+      document.getElementById('recordingStatus').textContent = '✅ 录音完成';
+      document.getElementById('recordingDot').style.display = 'none';
+      document.getElementById('recordingTime').style.display = 'none';
+      document.getElementById('recordBtn').textContent = '🎤 重新录音';
+      document.getElementById('recordBtn').className = 'btn btn-outline btn-sm';
+    };
+    mediaRecorder.start();
+    recordingSeconds = 0;
+    document.getElementById('recordBtn').textContent = '⏹ 停止录音';
+    document.getElementById('recordBtn').className = 'btn btn-danger btn-sm';
+    document.getElementById('recordingStatus').textContent = '🔴 录音中...';
+    document.getElementById('recordingDot').style.display = 'inline-block';
+    document.getElementById('recordingTime').style.display = 'inline';
+    document.getElementById('recordingTime').textContent = '00:00';
+    document.getElementById('audioPreview').style.display = 'none';
+    recordingTimer = setInterval(() => {
+      recordingSeconds++;
+      const m = Math.floor(recordingSeconds / 60);
+      const s = recordingSeconds % 60;
+      document.getElementById('recordingTime').textContent =
+        String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+    }, 1000);
+  } catch (err) {
+    alert('无法访问麦克风: ' + err.message);
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.stop();
+  }
+  if (recordingTimer) {
+    clearInterval(recordingTimer);
+    recordingTimer = null;
+  }
+}
+
+// ==================== Reminders & Notifications ====================
+let notificationPermission = 'default';
+
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) return;
+  notificationPermission = await Notification.requestPermission();
+}
+
+function showToast(icon, title, msg) {
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerHTML = `
+    <div class="toast-icon">${icon}</div>
+    <div>
+      <div class="toast-title">${title}</div>
+      <div class="toast-time">${msg}</div>
+    </div>
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity .3s';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+function checkReminders() {
+  if (!('Notification' in window) || notificationPermission !== 'granted') return;
+
+  const now = new Date();
+  const nowStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  events.forEach(e => {
+    if (!e.reminder || !e.time || e.date !== nowStr) return;
+    const [h, m] = e.time.split(':').map(Number);
+    const eventMinutes = h * 60 + m;
+    const diff = eventMinutes - nowMinutes;
+    // Notify if within 15 min window and not already notified this minute
+    if (diff >= 0 && diff <= 15) {
+      const notifyKey = `notified_${e.id}_${nowStr}_${Math.floor(nowMinutes/5)}`;
+      if (!sessionStorage.getItem(notifyKey)) {
+        sessionStorage.setItem(notifyKey, '1');
+        new Notification('🔔 日程提醒', {
+          body: `${e.title}\n${e.time?.slice(0,5)} · ${diff === 0 ? '现在开始！' : `${diff}分钟后开始`}`,
+          icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📅</text></svg>',
+          tag: e.id,
+          requireInteraction: true,
+        });
+        showToast('🔔', '日程提醒', `${e.title} - ${diff === 0 ? '现在开始！' : diff + '分钟后'}`);
+      }
+    }
+  });
+}
+
+function scheduleReminderCheck() {
+  // Check every 30 seconds
+  if (window._reminderInterval) clearInterval(window._reminderInterval);
+  window._reminderInterval = setInterval(checkReminders, 30000);
+  checkReminders(); // Check immediately
+}
+
+// ==================== View media ====================
+async function viewEventMedia(id) {
+  const e = events.find(ev => ev.id === id);
+  if (!e) return;
+
+  let mediaHtml = '';
+  if (e.imageMediaId) {
+    try {
+      const url = await getMedia(e.imageMediaId);
+      if (url) mediaHtml += `<img src="${url}" style="max-width:100%;max-height:400px;border-radius:8px;">`;
+    } catch (err) { mediaHtml += '<p>图片加载失败</p>'; }
+  }
+  if (e.voiceMediaId) {
+    try {
+      const url = await getMedia(e.voiceMediaId);
+      if (url) mediaHtml += `<audio controls src="${url}" style="width:100%;margin-top:8px;"></audio>`;
+    } catch (err) { mediaHtml += '<p>语音加载失败</p>'; }
+  }
+
+  if (!mediaHtml) {
+    alert('该日程没有附加媒体文件');
+    return;
+  }
+
+  // Simple media viewer
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:150;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:24px;max-width:500px;max-height:80vh;overflow-y:auto;position:relative;">
+      <h3 style="margin-bottom:12px;">${escapeHtml(e.title)}</h3>
+      ${mediaHtml}
+      ${e.description ? `<p style="margin-top:8px;color:var(--text-muted);">${escapeHtml(e.description)}</p>` : ''}
+      <button style="position:absolute;top:8px;right:12px;background:none;border:none;font-size:24px;cursor:pointer;" onclick="this.closest('div').parentElement.remove()">×</button>
+    </div>
+  `;
+  overlay.addEventListener('click', function(ev) {
+    if (ev.target === overlay) overlay.remove();
+  });
+  document.body.appendChild(overlay);
+}
+
+// ==================== Navigation ====================
+function changeMonth(delta) {
+  currentMonth += delta;
+  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  renderAll();
+}
+
+function goToToday() {
+  const today = new Date();
+  currentMonth = today.getMonth();
+  currentYear = today.getFullYear();
+  selectedDate = getTodayStr();
+  renderAll();
+}
+
+// ==================== Keyboard shortcuts ====================
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  switch (e.key) {
+    case 'n': openAddModal(); break;
+    case 't': goToToday(); break;
+    case 'ArrowLeft': if (e.ctrlKey || e.metaKey) changeMonth(-1); break;
+    case 'ArrowRight': if (e.ctrlKey || e.metaKey) changeMonth(1); break;
+    case 'Escape': closeModal(); break;
+  }
+});
+
+// ==================== Init ====================
+async function init() {
+  await openDB();
+  selectedDate = getTodayStr();
+  renderAll();
+  requestNotificationPermission();
+  scheduleReminderCheck();
+}
+
+init();
+</script>
+</body>
+</html>

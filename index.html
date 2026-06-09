@@ -666,13 +666,22 @@ function toast(msg) {
 }
 
 // ==================== VOICE RECORDING ====================
+// Strategy (in priority order):
+//   1. Cordova native speech recognition (APK) — works in China, no API key
+//   2. Web Speech API (browser) — may use device engine on mobile
+//   3. MediaRecorder + Whisper API — needs VPN in China
+//   4. Text input fallback
+
 let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
 let currentMimeType = 'audio/webm';
 let currentFileExt = 'webm';
+let webSpeechRecognition = null;
 
-// Pick the best supported MIME type. Android often doesn't support webm well.
+const isCordova = !!(window.cordova || (window.plugins && window.plugins.speechRecognition));
+const hasWebSpeech = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+
 function detectMimeType() {
   const candidates = [
     { mime: 'audio/webm;codecs=opus', ext: 'webm' },
@@ -684,20 +693,123 @@ function detectMimeType() {
     { mime: 'audio/3gpp', ext: '3gp' },
   ];
   for (const c of candidates) {
-    if (MediaRecorder.isTypeSupported(c.mime)) {
-      console.log('[Voice] Using MIME:', c.mime);
-      return c;
-    }
+    if (MediaRecorder.isTypeSupported(c.mime)) { return c; }
   }
   return { mime: 'audio/webm', ext: 'webm' };
 }
 
 async function toggleVoice() {
-  if (isRecording) { stopRecording(); return; }
-  await startRecording();
+  // If currently recording/recognizing, stop
+  if (isRecording) {
+    if (webSpeechRecognition) { stopWebSpeech(); return; }
+    stopWhisperRecording();
+    return;
+  }
+  // Strategy 1: Cordova native speech (APK)
+  if (isCordova) {
+    startNativeSpeech();
+    return;
+  }
+  // Strategy 2: Web Speech API
+  if (hasWebSpeech) {
+    startWebSpeech();
+    return;
+  }
+  // Strategy 3: MediaRecorder + Whisper
+  await startWhisperRecording();
 }
 
-async function startRecording() {
+// ═══ Strategy 1: Native Android speech recognition (for APK) ═══
+function startNativeSpeech() {
+  const fab = document.getElementById('fabBtn');
+  const fabLabel = document.getElementById('fabLabel');
+
+  updateVoiceBar('🔴 正在听...', '使用手机系统语音识别');
+  fab.classList.add('listening'); fab.textContent = '⏹';
+  fabLabel.textContent = '识别中...';
+
+  window.plugins.speechRecognition.startListening(
+    { language: 'zh-CN', showPopup: true, showPartial: false, matches: 1 },
+    (matches) => {
+      resetVoiceUI();
+      const fab = document.getElementById('fabBtn');
+      if (matches && matches.length > 0) {
+        const text = matches[0];
+        document.getElementById('voiceText').textContent = '"' + text + '"';
+        document.getElementById('voiceStatusText').textContent = '✅ 识别完成，AI 解析中...';
+        document.getElementById('voiceDot').className = 'vb-dot thinking';
+        processWithLLM(text);
+      } else {
+        updateVoiceBar('未识别到语音内容', '❌ 请再试一次');
+        setTimeout(hideVoiceBar, 2000);
+      }
+    },
+    (err) => {
+      resetVoiceUI();
+      console.error('[Native] Speech error:', err);
+      // Fallback: try Whisper API if native fails
+      updateVoiceBar('系统语音识别不可用，请手动输入', '⚠️ ' + (err || '').toString().slice(0, 40));
+      showTextInputFallback();
+    }
+  );
+}
+
+// ═══ Strategy 2: Web Speech API (browser) ═══
+function startWebSpeech() {
+  const fab = document.getElementById('fabBtn');
+  const fabLabel = document.getElementById('fabLabel');
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  webSpeechRecognition = new SpeechRecognition();
+  webSpeechRecognition.lang = 'zh-CN';
+  webSpeechRecognition.interimResults = false;
+  webSpeechRecognition.maxAlternatives = 1;
+
+  webSpeechRecognition.onresult = (event) => {
+    resetVoiceUI();
+    const transcript = event.results[0][0].transcript;
+    if (transcript.trim()) {
+      document.getElementById('voiceText').textContent = '"' + transcript + '"';
+      document.getElementById('voiceStatusText').textContent = '✅ 识别完成，AI 解析中...';
+      document.getElementById('voiceDot').className = 'vb-dot thinking';
+      processWithLLM(transcript);
+    } else {
+      updateVoiceBar('未识别到语音', '❌ 请再试一次');
+      setTimeout(hideVoiceBar, 2000);
+    }
+  };
+
+  webSpeechRecognition.onerror = (event) => {
+    console.log('[WebSpeech] Error:', event.error);
+    resetVoiceUI();
+    // Fall back to Whisper API
+    updateVoiceBar('浏览器语音不可用，尝试云端识别', '切换到录音模式...');
+    setTimeout(() => startWhisperRecording(), 300);
+  };
+
+  webSpeechRecognition.onend = () => {
+    // If no result came back, reset
+  };
+
+  webSpeechRecognition.start();
+  fab.classList.add('listening'); fab.textContent = '⏹';
+  fabLabel.textContent = '识别中...点击停止';
+  updateVoiceBar('🔴 正在听...', '浏览器语音识别中');
+
+  // Allow manual stop
+  isRecording = true;
+}
+
+function stopWebSpeech() {
+  if (webSpeechRecognition) {
+    try { webSpeechRecognition.abort(); } catch(e) {}
+    webSpeechRecognition = null;
+  }
+  resetVoiceUI();
+}
+
+// ═══ Strategy 3: MediaRecorder + Whisper API ═══
+async function startWhisperRecording() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000 }
@@ -707,47 +819,29 @@ async function startRecording() {
     const detected = detectMimeType();
     currentMimeType = detected.mime;
     currentFileExt = detected.ext;
-    mediaRecorder = new MediaRecorder(stream, {
-      mimeType: currentMimeType,
-      audioBitsPerSecond: 64000
-    });
+    mediaRecorder = new MediaRecorder(stream, { mimeType: currentMimeType, audioBitsPerSecond: 64000 });
 
-    mediaRecorder.ondataavailable = (e) => {
-      console.log('[Voice] Data chunk:', e.data.size, 'bytes, state:', mediaRecorder?.state);
-      if (e.data.size > 0) audioChunks.push(e.data);
-    };
+    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
 
     mediaRecorder.onerror = (e) => {
-      console.error('[Voice] Recorder error:', e);
       toast('⚠️ 录音器出错，请重试');
-      resetVoiceUI();
-      hideVoiceBar();
+      resetVoiceUI(); hideVoiceBar();
     };
 
     mediaRecorder.onstop = async () => {
-      console.log('[Voice] Stopped. Chunks:', audioChunks.length, 'MIME:', currentMimeType);
       stream.getTracks().forEach(t => t.stop());
-
       if (audioChunks.length === 0) {
-        updateVoiceBar('录音失败：未收到音频数据', '⚠️ 可能是系统不兼容，请用文字输入');
-        resetVoiceUI();
-        showTextInputFallback();
-        return;
+        updateVoiceBar('未收到音频数据', '⚠️ 请用文字输入');
+        resetVoiceUI(); showTextInputFallback(); return;
       }
-
       const blob = new Blob(audioChunks, { type: currentMimeType });
-      console.log('[Voice] Final blob:', blob.size, 'bytes, type:', blob.type);
-
       if (blob.size < 200) {
         updateVoiceBar('录音太短或无声音，请再试一次', '⚠️');
-        resetVoiceUI();
-        setTimeout(hideVoiceBar, 2000);
-        return;
+        resetVoiceUI(); setTimeout(hideVoiceBar, 2000); return;
       }
       await transcribeAndParse(blob);
     };
 
-    // Use timeslice 1000ms so data is captured even on quirky Android WebViews
     mediaRecorder.start(1000);
     isRecording = true;
 
@@ -755,20 +849,16 @@ async function startRecording() {
     const fabLabel = document.getElementById('fabLabel');
     fab.classList.add('listening'); fab.textContent = '⏹';
     fabLabel.textContent = '录音中...点击停止';
-    updateVoiceBar('🔴 正在录音...', '说话中，说完点停止按钮');
+    updateVoiceBar('🔴 正在录音...', '说完点停止');
   } catch (err) {
     console.error('[Voice] Mic error:', err);
     if (err.name === 'NotAllowedError') toast('⚠️ 请允许麦克风权限后重试');
-    else if (err.name === 'NotFoundError') toast('⚠️ 未检测到麦克风设备');
-    else toast('⚠️ 麦克风访问失败: ' + err.message);
+    else toast('⚠️ 麦克风失败: ' + err.message);
   }
 }
 
-function stopRecording() {
-  if (mediaRecorder && mediaRecorder.state === 'recording') {
-    console.log('[Voice] Manual stop. Chunks collected:', audioChunks.length);
-    mediaRecorder.stop();
-  }
+function stopWhisperRecording() {
+  if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
   isRecording = false; resetVoiceUI();
 }
 
@@ -796,54 +886,48 @@ function hideVoiceBar() {
   document.getElementById('voiceConfirm').style.display = 'none';
 }
 
-// ==================== TRANSCRIBE + LLM ====================
+// ═══ Transcriber (for Whisper fallback) ═══
 async function transcribeAndParse(audioBlob) {
   const dot = document.getElementById('voiceDot');
   const statusText = document.getElementById('voiceStatusText');
   const vbText = document.getElementById('voiceText');
-
   vbText.textContent = '⏳ 语音转文字中...';
   dot.className = 'vb-dot thinking';
-  statusText.textContent = '调用语音识别 API';
+  statusText.textContent = '调用 Whisper API';
 
-  let transcript = '';
   if (settings.sttApiKey) {
-    try { transcript = await callSTT(audioBlob); }
-    catch (e) {
+    try {
+      const transcript = await callSTT(audioBlob);
+      if (!transcript.trim()) {
+        vbText.textContent = '未能识别到语音内容';
+        statusText.textContent = '❌ 请再试一次';
+        dot.className = 'vb-dot';
+        setTimeout(hideVoiceBar, 2000);
+        return;
+      }
+      vbText.textContent = '"' + transcript + '"';
+      statusText.textContent = '✅ 识别完成，AI 解析中...';
+      dot.className = 'vb-dot thinking';
+      await processWithLLM(transcript);
+    } catch (e) {
       console.error('STT error:', e);
-      statusText.textContent = '⚠️ 语音识别失败: ' + (e.message || '未知错误').slice(0, 60);
+      statusText.textContent = '⚠️ 识别失败: ' + (e.message || '').slice(0, 50);
       dot.className = 'vb-dot';
-      showTextInputFallback(); return;
+      showTextInputFallback();
     }
   } else {
     statusText.textContent = '未配置语音识别 Key';
     dot.className = 'vb-dot';
-    showTextInputFallback(); return;
+    showTextInputFallback();
   }
-
-  if (!transcript.trim()) {
-    vbText.textContent = '未能识别到语音内容';
-    statusText.textContent = '❌ 请再试一次';
-    dot.className = 'vb-dot';
-    setTimeout(hideVoiceBar, 2000);
-    return;
-  }
-
-  vbText.textContent = `"${transcript}"`;
-  statusText.textContent = '✅ 语音识别完成，AI 解析中...';
-  dot.className = 'vb-dot thinking';
-  await processWithLLM(transcript);
 }
 
 async function callSTT(audioBlob) {
   const fileName = 'recording.' + currentFileExt;
-  console.log('[STT] Sending blob:', audioBlob.size, 'bytes, type:', audioBlob.type, 'filename:', fileName);
-
   const formData = new FormData();
   formData.append('file', audioBlob, fileName);
   formData.append('model', settings.sttModel || 'whisper-1');
   formData.append('language', 'zh');
-  formData.append('response_format', 'json');
 
   const resp = await fetch(settings.sttApiUrl, {
     method: 'POST',
@@ -853,11 +937,9 @@ async function callSTT(audioBlob) {
 
   if (!resp.ok) {
     const errText = await resp.text();
-    console.error('[STT] API error:', resp.status, errText.slice(0,300));
     throw new Error(`${resp.status}: ${errText.slice(0,150)}`);
   }
   const data = await resp.json();
-  console.log('[STT] Transcript:', data.text?.slice(0, 100));
   return data.text || '';
 }
 

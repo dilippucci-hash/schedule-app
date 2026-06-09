@@ -402,8 +402,14 @@ function renderTimetable() {
     for (const evt of dayEvents) {
       const startH = parseInt((evt.startTime||'06').split(':')[0]);
       const startM = parseInt((evt.startTime||'06:00').split(':')[1]||'0');
-      const endH = parseInt((evt.endTime||'24').split(':')[0]);
-      const endM = parseInt((evt.endTime||'24:00').split(':')[1]||'0');
+      // If no endTime but has startTime, default to 1 hour later
+      let effEndTime = evt.endTime;
+      if (!effEndTime && evt.startTime) {
+        const eh = startH + 1;
+        effEndTime = `${String(eh).padStart(2,'0')}:${String(startM).padStart(2,'0')}`;
+      }
+      const endH = parseInt((effEndTime||'24').split(':')[0]);
+      const endM = parseInt((effEndTime||'24:00').split(':')[1]||'0');
 
       const top = HEADER_H + (startH - 6) * ROW_H + (startM/60)*ROW_H;
       const height = Math.max(16, (endH - 6)*ROW_H + (endM/60)*ROW_H - (startH - 6)*ROW_H - (startM/60)*ROW_H);
@@ -602,8 +608,8 @@ async function callLLM(text) {
 2. 下周X = 本周日期+7天
 3. 上午/下午/晚上转24小时制: 上午6-12, 下午12-18, 晚上18-22
 4. "8点"/"三点半" → HH:MM
-5. "一小时"/"两小时"推算结束时间
-6. 无时间则startTime/endTime为null
+5. "一小时"/"两小时"推算结束时间；只有一个时间点没有时长时，endTime = startTime + 1小时
+6. 完全没有提到时间则startTime/endTime都为null（全天事件）
 7. 含"提醒/别忘了/记得"则reminder=true
 
 只输出JSON:

@@ -30,6 +30,7 @@ body {
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
   user-select: none; -webkit-user-select: none;
+  padding-bottom: 64px; /* space for input bar */
 }
 /* ── Header ── */
 .header {
@@ -138,50 +139,54 @@ body {
 .f5 { background: linear-gradient(135deg, rgba(255,185,105,0.82), rgba(255,165,80,0.75));  border-left-color: #e8590c; color: #6B2D00; }
 .f6 { background: linear-gradient(135deg, rgba(100,225,205,0.82), rgba(70,210,190,0.75)); border-left-color: #0c8599; color: #003D3D; }
 .f7 { background: linear-gradient(135deg, rgba(255,145,185,0.82), rgba(255,120,165,0.75)); border-left-color: #d6336c; color: #6B0028; }
-/* ── Floating mic button ── */
-.fab-wrap {
-  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-  z-index: 100; display: flex; flex-direction: column; align-items: center; gap: 6px;
+/* ── Bottom input bar ── */
+.input-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--card); border-top: 1px solid var(--border);
+  padding: 10px 12px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  z-index: 100; display: flex; gap: 8px; align-items: center;
 }
-.fab {
-  width: 56px; height: 56px; border-radius: 50%; border: none;
-  background: var(--blue); color: #fff; font-size: 26px; cursor: pointer;
-  box-shadow: 0 4px 20px rgba(0,122,255,.35);
+.input-bar input {
+  flex: 1; padding: 11px 14px; border: 1.5px solid var(--border);
+  border-radius: 22px; font-size: 15px; font-family: inherit;
+  background: #f5f5f7; outline: none; min-width: 0;
+}
+.input-bar input:focus { border-color: var(--blue); background: #fff; }
+.input-bar .send-btn {
+  width: 42px; height: 42px; border-radius: 50%; border: none;
+  background: var(--blue); color: #fff; font-size: 18px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: all .2s;
+  flex-shrink: 0; transition: all .15s;
 }
-.fab:active { transform: scale(.92); }
-.fab.listening {
-  background: var(--red);
-  box-shadow: 0 4px 24px rgba(255,59,48,.45);
-  animation: pulse-ring 1.5s infinite;
+.input-bar .send-btn:active { transform: scale(.92); }
+.input-bar .send-btn:disabled { background: #ccc; }
+.input-bar .hint-text {
+  position: absolute; top: -20px; left: 16px;
+  font-size: 10px; color: var(--muted);
 }
-@keyframes pulse-ring {
-  0% { box-shadow: 0 4px 24px rgba(255,59,48,.45); }
-  50% { box-shadow: 0 0 40px rgba(255,59,48,.5), 0 0 0 14px rgba(255,59,48,.1); }
-  100% { box-shadow: 0 4px 24px rgba(255,59,48,.45); }
-}
-.fab-label { font-size: 10px; color: var(--muted); font-weight: 500; }
-/* ── Voice status bar ── */
-.voice-bar {
-  position: fixed; bottom: 100px; left: 12px; right: 12px;
+/* ── Confirm bar (shown after LLM parses) ── */
+.confirm-bar {
+  position: fixed; bottom: 64px; left: 8px; right: 8px;
   background: var(--card); border-radius: var(--radius);
-  padding: 14px 16px; box-shadow: 0 8px 32px rgba(0,0,0,.12);
+  padding: 14px 16px; box-shadow: 0 4px 24px rgba(0,0,0,.15);
   z-index: 99; display: none; animation: slideUp .25s;
 }
-@keyframes slideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-.voice-bar .vb-text { font-size: 14px; font-weight: 500; line-height: 1.4; margin-bottom: 6px; }
-.voice-bar .vb-status { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
-.voice-bar .vb-dot { width: 8px; height: 8px; background: #34c759; border-radius: 50%; }
-.voice-bar .vb-dot.thinking { background: #ff9500; animation: pulse 1s infinite; }
-@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.3; } }
-.voice-bar .vb-confirm { display: flex; gap: 8px; margin-top: 10px; }
-.voice-bar .vb-confirm button {
-  flex:1; padding: 8px; border-radius: 8px; border: none;
+@keyframes slideUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+.confirm-bar .cf-text { font-size: 14px; font-weight: 500; line-height: 1.4; margin-bottom: 8px; }
+.confirm-bar .cf-btns { display: flex; gap: 8px; }
+.confirm-bar .cf-btns button {
+  flex:1; padding: 9px; border-radius: 8px; border: none;
   font-size: 13px; font-weight: 600; cursor: pointer;
 }
-.vb-confirm .btn-yes { background: var(--blue); color: #fff; }
-.vb-confirm .btn-no { background: #f1f1f4; color: var(--text); }
+.cf-btns .btn-yes { background: var(--blue); color: #fff; }
+.cf-btns .btn-no { background: #f1f1f4; color: var(--text); }
+/* loading spinner in input bar */
+.input-bar .loading-spinner {
+  width: 20px; height: 20px; border: 2px solid #ddd; border-top-color: var(--blue);
+  border-radius: 50%; animation: spin .6s linear infinite; flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 /* ── Event detail sheet ── */
 .sheet-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 200;
@@ -275,18 +280,20 @@ body {
   </div>
 </div>
 
-<!-- Floating mic button -->
-<div class="fab-wrap">
-  <div class="voice-bar" id="voiceBar">
-    <div class="vb-text" id="voiceText">...</div>
-    <div class="vb-status">
-      <span class="vb-dot" id="voiceDot"></span>
-      <span id="voiceStatusText">正在听...</span>
-    </div>
-    <div class="vb-confirm" id="voiceConfirm" style="display:none;"></div>
+<!-- Bottom input bar -->
+<div class="input-bar" id="inputBar">
+  <input type="text" id="scheduleInput" placeholder="说说日程，如：明天下午3点开会 提醒我"
+    autocomplete="off" autocorrect="off">
+  <button class="send-btn" id="sendBtn" onclick="submitInput()">➤</button>
+</div>
+
+<!-- Confirm bar -->
+<div class="confirm-bar" id="confirmBar">
+  <div class="cf-text" id="cfText"></div>
+  <div class="cf-btns">
+    <button class="btn-yes" onclick="confirmAdd()">✓ 添加</button>
+    <button class="btn-no" onclick="cancelAdd()">✗ 取消</button>
   </div>
-  <button class="fab" id="fabBtn" onclick="toggleVoice()">🎤</button>
-  <div class="fab-label" id="fabLabel">点按说话</div>
 </div>
 
 <!-- Event detail sheet -->
@@ -665,349 +672,63 @@ function toast(msg) {
   setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); }, 2000);
 }
 
-// ==================== VOICE RECORDING ====================
-// Strategy (in priority order):
-//   1. Cordova native speech recognition (APK) — works in China, no API key
-//   2. Web Speech API (browser) — may use device engine on mobile
-//   3. MediaRecorder + Whisper API — needs VPN in China
-//   4. Text input fallback
+// ==================== INPUT SUBMISSION ====================
+// User types (or uses keyboard mic) → DeepSeek parses → confirm → add
 
-let mediaRecorder = null;
-let audioChunks = [];
-let isRecording = false;
-let currentMimeType = 'audio/webm';
-let currentFileExt = 'webm';
-let webSpeechRecognition = null;
-
-const isCordova = !!(window.cordova || (window.plugins && window.plugins.speechRecognition));
-const hasWebSpeech = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
-
-function detectMimeType() {
-  const candidates = [
-    { mime: 'audio/webm;codecs=opus', ext: 'webm' },
-    { mime: 'audio/webm', ext: 'webm' },
-    { mime: 'audio/mp4', ext: 'mp4' },
-    { mime: 'audio/mp4;codecs=mp4a.40.2', ext: 'mp4' },
-    { mime: 'audio/aac', ext: 'aac' },
-    { mime: 'audio/ogg;codecs=opus', ext: 'ogg' },
-    { mime: 'audio/3gpp', ext: '3gp' },
-  ];
-  for (const c of candidates) {
-    if (MediaRecorder.isTypeSupported(c.mime)) { return c; }
-  }
-  return { mime: 'audio/webm', ext: 'webm' };
-}
-
-async function toggleVoice() {
-  // If currently recording/recognizing, stop
-  if (isRecording) {
-    if (webSpeechRecognition) { stopWebSpeech(); return; }
-    stopWhisperRecording();
-    return;
-  }
-  // Strategy 1: Cordova native speech (APK)
-  if (isCordova) {
-    startNativeSpeech();
-    return;
-  }
-  // Strategy 2: Web Speech API
-  if (hasWebSpeech) {
-    startWebSpeech();
-    return;
-  }
-  // Strategy 3: MediaRecorder + Whisper
-  await startWhisperRecording();
-}
-
-// ═══ Strategy 1: Native Android speech recognition (for APK) ═══
-function startNativeSpeech() {
-  const fab = document.getElementById('fabBtn');
-  const fabLabel = document.getElementById('fabLabel');
-
-  updateVoiceBar('🔴 正在听...', '使用手机系统语音识别');
-  fab.classList.add('listening'); fab.textContent = '⏹';
-  fabLabel.textContent = '识别中...';
-
-  window.plugins.speechRecognition.startListening(
-    { language: 'zh-CN', showPopup: true, showPartial: false, matches: 1 },
-    (matches) => {
-      resetVoiceUI();
-      const fab = document.getElementById('fabBtn');
-      if (matches && matches.length > 0) {
-        const text = matches[0];
-        document.getElementById('voiceText').textContent = '"' + text + '"';
-        document.getElementById('voiceStatusText').textContent = '✅ 识别完成，AI 解析中...';
-        document.getElementById('voiceDot').className = 'vb-dot thinking';
-        processWithLLM(text);
-      } else {
-        updateVoiceBar('未识别到语音内容', '❌ 请再试一次');
-        setTimeout(hideVoiceBar, 2000);
-      }
-    },
-    (err) => {
-      resetVoiceUI();
-      console.error('[Native] Speech error:', err);
-      // Fallback: try Whisper API if native fails
-      updateVoiceBar('系统语音识别不可用，请手动输入', '⚠️ ' + (err || '').toString().slice(0, 40));
-      showTextInputFallback();
-    }
-  );
-}
-
-// ═══ Strategy 2: Web Speech API (browser) ═══
-function startWebSpeech() {
-  const fab = document.getElementById('fabBtn');
-  const fabLabel = document.getElementById('fabLabel');
-
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  webSpeechRecognition = new SpeechRecognition();
-  webSpeechRecognition.lang = 'zh-CN';
-  webSpeechRecognition.interimResults = false;
-  webSpeechRecognition.maxAlternatives = 1;
-
-  webSpeechRecognition.onresult = (event) => {
-    resetVoiceUI();
-    const transcript = event.results[0][0].transcript;
-    if (transcript.trim()) {
-      document.getElementById('voiceText').textContent = '"' + transcript + '"';
-      document.getElementById('voiceStatusText').textContent = '✅ 识别完成，AI 解析中...';
-      document.getElementById('voiceDot').className = 'vb-dot thinking';
-      processWithLLM(transcript);
-    } else {
-      updateVoiceBar('未识别到语音', '❌ 请再试一次');
-      setTimeout(hideVoiceBar, 2000);
-    }
-  };
-
-  webSpeechRecognition.onerror = (event) => {
-    console.log('[WebSpeech] Error:', event.error);
-    resetVoiceUI();
-    // Fall back to Whisper API
-    updateVoiceBar('浏览器语音不可用，尝试云端识别', '切换到录音模式...');
-    setTimeout(() => startWhisperRecording(), 300);
-  };
-
-  webSpeechRecognition.onend = () => {
-    // If no result came back, reset
-  };
-
-  webSpeechRecognition.start();
-  fab.classList.add('listening'); fab.textContent = '⏹';
-  fabLabel.textContent = '识别中...点击停止';
-  updateVoiceBar('🔴 正在听...', '浏览器语音识别中');
-
-  // Allow manual stop
-  isRecording = true;
-}
-
-function stopWebSpeech() {
-  if (webSpeechRecognition) {
-    try { webSpeechRecognition.abort(); } catch(e) {}
-    webSpeechRecognition = null;
-  }
-  resetVoiceUI();
-}
-
-// ═══ Strategy 3: MediaRecorder + Whisper API ═══
-async function startWhisperRecording() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000 }
-    });
-    audioChunks = [];
-
-    const detected = detectMimeType();
-    currentMimeType = detected.mime;
-    currentFileExt = detected.ext;
-    mediaRecorder = new MediaRecorder(stream, { mimeType: currentMimeType, audioBitsPerSecond: 64000 });
-
-    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
-
-    mediaRecorder.onerror = (e) => {
-      toast('⚠️ 录音器出错，请重试');
-      resetVoiceUI(); hideVoiceBar();
-    };
-
-    mediaRecorder.onstop = async () => {
-      stream.getTracks().forEach(t => t.stop());
-      if (audioChunks.length === 0) {
-        updateVoiceBar('未收到音频数据', '⚠️ 请用文字输入');
-        resetVoiceUI(); showTextInputFallback(); return;
-      }
-      const blob = new Blob(audioChunks, { type: currentMimeType });
-      if (blob.size < 200) {
-        updateVoiceBar('录音太短或无声音，请再试一次', '⚠️');
-        resetVoiceUI(); setTimeout(hideVoiceBar, 2000); return;
-      }
-      await transcribeAndParse(blob);
-    };
-
-    mediaRecorder.start(1000);
-    isRecording = true;
-
-    const fab = document.getElementById('fabBtn');
-    const fabLabel = document.getElementById('fabLabel');
-    fab.classList.add('listening'); fab.textContent = '⏹';
-    fabLabel.textContent = '录音中...点击停止';
-    updateVoiceBar('🔴 正在录音...', '说完点停止');
-  } catch (err) {
-    console.error('[Voice] Mic error:', err);
-    if (err.name === 'NotAllowedError') toast('⚠️ 请允许麦克风权限后重试');
-    else toast('⚠️ 麦克风失败: ' + err.message);
-  }
-}
-
-function stopWhisperRecording() {
-  if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
-  isRecording = false; resetVoiceUI();
-}
-
-function resetVoiceUI() {
-  const fab = document.getElementById('fabBtn');
-  const fabLabel = document.getElementById('fabLabel');
-  fab.classList.remove('listening'); fab.textContent = '🎤';
-  fabLabel.textContent = '点按说话';
-  isRecording = false;
-}
-
-function updateVoiceBar(text, status) {
-  const bar = document.getElementById('voiceBar');
-  const vbText = document.getElementById('voiceText');
-  const statusText = document.getElementById('voiceStatusText');
-  const dot = document.getElementById('voiceDot');
-  const confirm = document.getElementById('voiceConfirm');
-  bar.style.display = 'block'; vbText.textContent = text;
-  statusText.textContent = status; dot.className = 'vb-dot';
-  confirm.style.display = 'none';
-}
-
-function hideVoiceBar() {
-  document.getElementById('voiceBar').style.display = 'none';
-  document.getElementById('voiceConfirm').style.display = 'none';
-}
-
-// ═══ Transcriber (for Whisper fallback) ═══
-async function transcribeAndParse(audioBlob) {
-  const dot = document.getElementById('voiceDot');
-  const statusText = document.getElementById('voiceStatusText');
-  const vbText = document.getElementById('voiceText');
-  vbText.textContent = '⏳ 语音转文字中...';
-  dot.className = 'vb-dot thinking';
-  statusText.textContent = '调用 Whisper API';
-
-  if (settings.sttApiKey) {
-    try {
-      const transcript = await callSTT(audioBlob);
-      if (!transcript.trim()) {
-        vbText.textContent = '未能识别到语音内容';
-        statusText.textContent = '❌ 请再试一次';
-        dot.className = 'vb-dot';
-        setTimeout(hideVoiceBar, 2000);
-        return;
-      }
-      vbText.textContent = '"' + transcript + '"';
-      statusText.textContent = '✅ 识别完成，AI 解析中...';
-      dot.className = 'vb-dot thinking';
-      await processWithLLM(transcript);
-    } catch (e) {
-      console.error('STT error:', e);
-      statusText.textContent = '⚠️ 识别失败: ' + (e.message || '').slice(0, 50);
-      dot.className = 'vb-dot';
-      showTextInputFallback();
-    }
-  } else {
-    statusText.textContent = '未配置语音识别 Key';
-    dot.className = 'vb-dot';
-    showTextInputFallback();
-  }
-}
-
-async function callSTT(audioBlob) {
-  const fileName = 'recording.' + currentFileExt;
-  const formData = new FormData();
-  formData.append('file', audioBlob, fileName);
-  formData.append('model', settings.sttModel || 'whisper-1');
-  formData.append('language', 'zh');
-
-  const resp = await fetch(settings.sttApiUrl, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${settings.sttApiKey}` },
-    body: formData
-  });
-
-  if (!resp.ok) {
-    const errText = await resp.text();
-    throw new Error(`${resp.status}: ${errText.slice(0,150)}`);
-  }
-  const data = await resp.json();
-  return data.text || '';
-}
-
-function showTextInputFallback() {
-  const vbText = document.getElementById('voiceText');
-  const confirm = document.getElementById('voiceConfirm');
-  vbText.innerHTML = '<input type="text" id="manualInput" placeholder="手动输入日程，如：明天下午3点开会提醒我" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">';
-  confirm.innerHTML = `<button class="btn-yes" onclick="submitManualText()">✓ 解析</button><button class="btn-no" onclick="cancelAdd()">✗ 取消</button>`;
-  confirm.style.display = 'flex';
-  setTimeout(() => {
-    const inp = document.getElementById('manualInput');
-    if (inp) { inp.focus(); inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitManualText(); }); }
-  }, 200);
-}
-
-async function submitManualText() {
-  const inp = document.getElementById('manualInput');
-  const text = inp?.value?.trim();
+async function submitInput() {
+  const inp = document.getElementById('scheduleInput');
+  const btn = document.getElementById('sendBtn');
+  const text = inp.value.trim();
   if (!text) { toast('请输入日程内容'); return; }
 
-  const vbText = document.getElementById('voiceText');
-  const dot = document.getElementById('voiceDot');
-  const statusText = document.getElementById('voiceStatusText');
-  vbText.textContent = `"${text}"`;
-  dot.className = 'vb-dot thinking';
-  statusText.textContent = 'AI 解析中...';
-  await processWithLLM(text);
+  // Show loading
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading-spinner"></span>';
+
+  try {
+    await processWithLLM(text);
+  } catch (e) {
+    toast('⚠️ 解析失败，请重试');
+    btn.disabled = false;
+    btn.textContent = '➤';
+  }
+}
+
+// Called after LLM parse succeeds (with parsed data ready)
+// Shows confirm bar at bottom
+function showConfirmBar(parsed) {
+  pendingParsed = parsed;
+  const timeInfo = parsed.startTime ? `${parsed.startTime}-${parsed.endTime||''}` : '全天';
+  const remindInfo = parsed.reminder ? '· 🔔提醒' : '';
+  document.getElementById('cfText').innerHTML =
+    `<b>${escHtml(parsed.title)}</b><br><span style="font-size:12px;color:var(--muted);">📅 ${parsed.date} · ${timeInfo} ${remindInfo}</span>`;
+  document.getElementById('confirmBar').style.display = 'block';
+  document.getElementById('sendBtn').disabled = false;
+  document.getElementById('sendBtn').textContent = '➤';
 }
 
 async function processWithLLM(text) {
-  const vbText = document.getElementById('voiceText');
-  const dot = document.getElementById('voiceDot');
-  const statusText = document.getElementById('voiceStatusText');
-  const confirm = document.getElementById('voiceConfirm');
-
   let parsed = null;
   if (settings.apiKey) {
     try {
       parsed = await callLLM(text);
-      statusText.textContent = '✅ AI 解析完成';
-      dot.className = 'vb-dot';
     } catch (e) {
       console.error('LLM error:', e);
-      statusText.textContent = '⚠️ API 失败，使用本地解析';
-      dot.className = 'vb-dot';
       parsed = localParse(text);
     }
   } else {
     await sleep(400);
     parsed = localParse(text);
-    statusText.textContent = '✅ 本地解析完成';
-    dot.className = 'vb-dot';
   }
 
   if (!parsed || !parsed.title) {
-    vbText.textContent = '无法识别日程信息，请再试一次';
-    statusText.textContent = '❌ 解析失败';
-    dot.className = 'vb-dot';
-    setTimeout(hideVoiceBar, 2000);
+    toast('❌ 无法识别日程信息，请换种说法试试');
+    document.getElementById('sendBtn').disabled = false;
+    document.getElementById('sendBtn').textContent = '➤';
     return;
   }
 
-  pendingParsed = parsed;
-  const timeInfo = parsed.startTime ? `${parsed.startTime}-${parsed.endTime||''}` : '全天';
-  const remindInfo = parsed.reminder ? '· 🔔提醒' : '';
-  vbText.innerHTML = `<b>${escHtml(parsed.title)}</b><br><span style="font-size:12px;color:var(--muted);">📅 ${parsed.date} · ${timeInfo} ${remindInfo}</span>`;
-  confirm.innerHTML = `<button class="btn-yes" onclick="confirmAdd()">✓ 添加</button><button class="btn-no" onclick="cancelAdd()">✗ 取消</button>`;
-  confirm.style.display = 'flex';
+  showConfirmBar(parsed);
 }
 
 async function callLLM(text) {
@@ -1144,14 +865,18 @@ function confirmAdd() {
   };
   events.push(evt);
   saveAndRefresh();
-  hideVoiceBar();
+  // Clear input & hide confirm
+  document.getElementById('scheduleInput').value = '';
+  document.getElementById('confirmBar').style.display = 'none';
   pendingParsed = null;
   toast('✅ 已添加: ' + evt.title);
 }
 
 function cancelAdd() {
   pendingParsed = null;
-  hideVoiceBar();
+  document.getElementById('confirmBar').style.display = 'none';
+  document.getElementById('sendBtn').disabled = false;
+  document.getElementById('sendBtn').textContent = '➤';
   toast('已取消');
 }
 
@@ -1224,6 +949,11 @@ function init() {
   }
   setInterval(checkReminders, 30000);
   checkReminders();
+
+  // Enter key submits input
+  document.getElementById('scheduleInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') submitInput();
+  });
 
   // Re-render on resize to fix event block positions
   let resizeTimer;

@@ -400,19 +400,20 @@ function renderTimetable() {
     const layout = computeDayLayout(dayEvents);
 
     for (const evt of dayEvents) {
-      const startH = parseInt((evt.startTime||'06').split(':')[0]);
-      const startM = parseInt((evt.startTime||'06:00').split(':')[1]||'0');
-      // If no endTime but has startTime, default to 1 hour later
-      let effEndTime = evt.endTime;
-      if (!effEndTime && evt.startTime) {
-        const eh = startH + 1;
-        effEndTime = `${String(eh).padStart(2,'0')}:${String(startM).padStart(2,'0')}`;
+      // Parse start time
+      const [sh, sm] = (evt.startTime||'06:00').split(':').map(Number);
+      // Parse / compute end time
+      let effEnd = evt.endTime;
+      if (!effEnd && evt.startTime) {
+        effEnd = `${String(sh+1).padStart(2,'0')}:${String(sm).padStart(2,'0')}`;
       }
-      const endH = parseInt((effEndTime||'24').split(':')[0]);
-      const endM = parseInt((effEndTime||'24:00').split(':')[1]||'0');
+      const [eh, em] = (effEnd||'24:00').split(':').map(Number);
 
-      const top = HEADER_H + (startH - 6) * ROW_H + (startM/60)*ROW_H;
-      const height = Math.max(16, (endH - 6)*ROW_H + (endM/60)*ROW_H - (startH - 6)*ROW_H - (startM/60)*ROW_H);
+      // Minute-precise positioning
+      const startMin = sh * 60 + sm;         // minutes from midnight
+      const endMin   = eh * 60 + em;
+      const top    = HEADER_H + (startMin - 360) * ROW_H / 60;
+      const height = Math.max(14, (endMin - startMin) * ROW_H / 60);
 
       const colIndex = layout.colMap[evt.id] || 0;
       const totalCols = layout.maxCols;
@@ -465,7 +466,7 @@ function showAddSheet(dateStr, startTime, endTime) {
       </div>
       <textarea id="addDesc" placeholder="备注" style="padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;"></textarea>
       <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;">
-        <input type="checkbox" id="addRemind" checked> 提前15分钟提醒
+        <input type="checkbox" id="addRemind" checked> 日程开始时弹窗提醒
       </label>
     </div>
     <div class="sheet-actions" style="margin-top:14px;">
@@ -716,16 +717,17 @@ function checkReminders() {
   events.forEach(e => {
     if (!e.reminder || !e.startTime || e.date !== nowStr) return;
     const [h,m] = e.startTime.split(':').map(Number);
-    const diff = h*60+m - nowMin;
-    if (diff >= 0 && diff <= 15) {
-      const key = `n_${e.id}_${nowStr}_${Math.floor(nowMin/5)}`;
+    const evtMin = h*60+m;
+    // Fire when current time >= event start time, within last 2 checks (20s window)
+    if (nowMin >= evtMin && nowMin < evtMin + 1) {
+      const key = `n_${e.id}_${nowStr}`;
       if (!sessionStorage.getItem(key)) {
         sessionStorage.setItem(key,'1');
         new Notification('🔔 日程提醒', {
-          body: `${e.title}\n${e.startTime.slice(0,5)} · ${diff===0?'现在！':diff+'分钟后'}`,
+          body: `${e.title}\n⏰ ${e.startTime.slice(0,5)} 到了！`,
           tag: e.id, requireInteraction: true
         });
-        toast(`🔔 ${e.title}`);
+        toast(`🔔 ${e.title} 开始了！`);
       }
     }
   });
@@ -734,10 +736,18 @@ function checkReminders() {
 // ==================== INIT ====================
 function init() {
   renderTimetable();
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
+  // Request notification permission
+  if ('Notification' in window) {
+    if (Notification.permission === 'default') {
+      Notification.requestPermission().then(p => {
+        if (p === 'granted') toast('✅ 通知权限已开启，日程到时会弹窗');
+        else toast('⚠️ 通知被拒绝，日程提醒将不会弹窗');
+      });
+    } else if (Notification.permission === 'denied') {
+      toast('⚠️ 通知权限未开启，请在系统设置中允许');
+    }
   }
-  setInterval(checkReminders, 30000);
+  setInterval(checkReminders, 10000);
   checkReminders();
 
   // Enter to submit

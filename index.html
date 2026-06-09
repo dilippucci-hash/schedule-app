@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#f5f5f7">
 <title>语音日程</title>
 <link rel="manifest" href="manifest.json">
@@ -17,288 +16,249 @@
   --border: #e5e5ea;
   --blue: #007aff;
   --red: #ff3b30;
-  --shadow: 0 2px 12px rgba(0,0,0,.06);
-  --radius: 12px;
 }
+
 * { margin:0; padding:0; box-sizing:border-box; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  height: 100vh; height: 100dvh;
-  display: flex; flex-direction: column;
-  overflow: hidden;
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg); color: var(--text);
   -webkit-tap-highlight-color: transparent;
   user-select: none; -webkit-user-select: none;
-  padding-bottom: 64px; /* space for input bar */
 }
+
+/* ── Layout ── */
+.app {
+  display: flex; flex-direction: column;
+  height: 100%;
+}
+
 /* ── Header ── */
 .header {
-  background: var(--card);
-  padding: 10px 16px;
+  background: var(--card); padding: 8px 14px;
   display: flex; align-items: center; justify-content: space-between;
-  border-bottom: 1px solid var(--border); flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  height: 44px; flex-shrink: 0;
 }
-.header h1 { font-size: 18px; font-weight: 700; }
-.header-actions { display: flex; gap: 8px; }
-.icon-btn {
-  width: 34px; height: 34px; border-radius: 50%;
-  border: none; background: var(--bg);
-  font-size: 17px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all .15s;
-}
-.icon-btn:active { background: #d1d1d6; transform: scale(.94); }
+.header h1 { font-size: 17px; font-weight: 700; }
+
 /* ── Week nav ── */
 .week-nav {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 12px; flex-shrink: 0; gap: 6px;
+  padding: 6px 10px; height: 36px; flex-shrink: 0; gap: 4px;
 }
-.week-nav .week-label { font-size: 13px; font-weight: 600; text-align: center; flex:1; }
-.week-nav .nav-arrow {
-  width: 30px; height: 30px; border-radius: 50%;
-  border: none; background: var(--card); font-size: 15px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: var(--shadow); transition: all .15s;
+.week-nav .week-label { font-size: 12px; font-weight: 600; flex:1; text-align: center; }
+.week-nav button {
+  width: 28px; height: 28px; border-radius: 50%; border: none;
+  background: var(--card); font-size: 14px; cursor: pointer;
+  box-shadow: 0 1px 6px rgba(0,0,0,.06);
 }
-.week-nav .nav-arrow:active { background: #d1d1d6; }
 .today-btn {
-  font-size: 11px; padding: 5px 10px; border-radius: 14px;
+  font-size: 10px; padding: 4px 8px; border-radius: 12px;
   border: 1.5px solid var(--blue); background: #fff;
   color: var(--blue); font-weight: 600; cursor: pointer;
 }
-/* ── Timetable ── */
+
+/* ── Timetable (scrollable) ── */
 .timetable-wrap {
   flex: 1; overflow: auto; -webkit-overflow-scrolling: touch;
-  background: var(--card); margin: 0 8px;
-  border-radius: var(--radius); box-shadow: var(--shadow);
+  background: var(--card); margin: 0 6px;
+  border-radius: 12px; box-shadow: 0 1px 8px rgba(0,0,0,.05);
   position: relative;
 }
-.timetable-inner { position: relative; min-height: 100%; }
+.timetable-inner { position: relative; }
 .timetable {
   display: grid;
-  grid-template-columns: 40px repeat(7, 1fr);
-  min-width: 100%; font-size: 11px;
+  grid-template-columns: 38px repeat(7, 1fr);
+  min-width: 100%; font-size: 10px;
 }
-/* Day headers */
+
 .tt-header {
   position: sticky; top: 0; z-index: 3;
-  background: var(--card); padding: 8px 2px; text-align: center;
-  font-weight: 600; font-size: 11px; border-bottom: 1px solid var(--border);
+  background: var(--card); padding: 6px 1px; text-align: center;
+  font-weight: 600; font-size: 10px; border-bottom: 1px solid var(--border);
 }
 .tt-header.today { background: #e8f2ff; }
-.tt-header .day-name { display: block; }
 .tt-header .day-date {
-  display: block; width: 22px; height: 22px; line-height: 22px;
-  border-radius: 50%; margin: 3px auto 0; font-size: 11px;
+  display: block; width: 20px; height: 20px; line-height: 20px;
+  border-radius: 50%; margin: 2px auto 0; font-size: 10px;
 }
 .tt-header.today .day-date { background: var(--blue); color: #fff; }
-/* Time labels + grid cells */
+
 .tt-time {
   position: sticky; left: 0; z-index: 2;
   background: var(--card); text-align: center;
-  font-size: 10px; color: var(--muted); padding: 2px 0;
-  border-right: 1px solid var(--border);
-  display: flex; align-items: flex-start; justify-content: center;
-  padding-top: 4px; font-weight: 500;
+  font-size: 9px; color: var(--muted); padding-top: 3px;
+  border-right: 1px solid var(--border); font-weight: 500;
 }
 .tt-cell {
-  min-height: 48px;
-  border-bottom: 1px solid #f0f0f5;
+  height: 46px; border-bottom: 1px solid #f0f0f5;
   border-right: 1px solid #f0f0f5;
-  cursor: pointer; transition: background .1s;
-  position: relative;
+  cursor: pointer; position: relative;
 }
 .tt-cell:active { background: #f0f0f5; }
 .tt-cell.today { background: #fafbff; }
-/* ── Event blocks (fluorescent highlights) ── */
+
+/* ── Event blocks (fluorescent) ── */
 .evt-block {
-  position: absolute;
-  border-radius: 5px;
-  cursor: pointer;
-  overflow: hidden;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1.3;
-  padding: 3px 5px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  z-index: 1;
-  transition: transform .1s, box-shadow .1s;
-  border-left: 3px solid transparent;
+  position: absolute; border-radius: 4px; cursor: pointer;
+  overflow: hidden; font-size: 9px; font-weight: 600;
+  line-height: 1.2; padding: 2px 4px;
+  white-space: nowrap; text-overflow: ellipsis;
+  z-index: 1; border-left: 3px solid;
+  transition: transform .1s;
 }
-.evt-block:active { transform: scale(.97); z-index: 5; box-shadow: 0 2px 12px rgba(0,0,0,.15); }
-.evt-block .evt-time { font-size: 8px; opacity: .8; display: block; }
+.evt-block:active { transform: scale(.97); z-index: 5; }
+.evt-block .evt-time { font-size: 7px; opacity: .7; display: block; }
 .evt-block .evt-title { display: block; overflow: hidden; text-overflow: ellipsis; }
-/* Fluorescent color variants (8 colors) */
-.f0 { background: linear-gradient(135deg, rgba(255,235,120,0.82), rgba(255,220,80,0.75)); border-left-color: #e6b800; color: #6B5900; }
-.f1 { background: linear-gradient(135deg, rgba(255,145,145,0.82), rgba(255,120,120,0.75)); border-left-color: #e03131; color: #6B1010; }
-.f2 { background: linear-gradient(135deg, rgba(135,225,155,0.82), rgba(100,210,130,0.75)); border-left-color: #2f9e44; color: #0D4A18; }
-.f3 { background: linear-gradient(135deg, rgba(135,205,255,0.82), rgba(100,185,250,0.75)); border-left-color: #1971c2; color: #003560; }
-.f4 { background: linear-gradient(135deg, rgba(210,150,240,0.82), rgba(190,125,230,0.75)); border-left-color: #845ef7; color: #3B0070; }
-.f5 { background: linear-gradient(135deg, rgba(255,185,105,0.82), rgba(255,165,80,0.75));  border-left-color: #e8590c; color: #6B2D00; }
-.f6 { background: linear-gradient(135deg, rgba(100,225,205,0.82), rgba(70,210,190,0.75)); border-left-color: #0c8599; color: #003D3D; }
-.f7 { background: linear-gradient(135deg, rgba(255,145,185,0.82), rgba(255,120,165,0.75)); border-left-color: #d6336c; color: #6B0028; }
+
+.f0 { background: rgba(255,235,120,0.80); border-left-color:#e6b800; color:#5a4a00; }
+.f1 { background: rgba(255,145,145,0.80); border-left-color:#e03131; color:#6B1010; }
+.f2 { background: rgba(135,225,155,0.80); border-left-color:#2f9e44; color:#0D4A18; }
+.f3 { background: rgba(135,205,255,0.80); border-left-color:#1971c2; color:#003560; }
+.f4 { background: rgba(210,150,240,0.80); border-left-color:#845ef7; color:#3B0070; }
+.f5 { background: rgba(255,185,105,0.80); border-left-color:#e8590c; color:#6B2D00; }
+.f6 { background: rgba(100,225,205,0.80); border-left-color:#0c8599; color:#003D3D; }
+.f7 { background: rgba(255,145,185,0.80); border-left-color:#d6336c; color:#6B0028; }
+
 /* ── Bottom input bar ── */
 .input-bar {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  background: var(--card); border-top: 1px solid var(--border);
-  padding: 10px 12px;
-  padding-bottom: max(10px, env(safe-area-inset-bottom));
-  z-index: 100; display: flex; gap: 8px; align-items: center;
+  height: 50px; flex-shrink: 0;
+  background: #fff; border-top: 1px solid #e5e5ea;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 10px;
 }
 .input-bar input {
-  flex: 1; padding: 11px 14px; border: 1.5px solid var(--border);
-  border-radius: 22px; font-size: 15px; font-family: inherit;
-  background: #f5f5f7; outline: none; min-width: 0;
+  flex: 1; height: 34px; padding: 0 12px;
+  border: 1.5px solid #ddd; border-radius: 17px;
+  font-size: 14px; font-family: inherit; background: #f5f5f7;
+  outline: none; min-width: 0;
 }
 .input-bar input:focus { border-color: var(--blue); background: #fff; }
-.input-bar .send-btn {
-  width: 42px; height: 42px; border-radius: 50%; border: none;
-  background: var(--blue); color: #fff; font-size: 18px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; transition: all .15s;
+.input-bar button {
+  width: 34px; height: 34px; border-radius: 50%; border: none;
+  background: var(--blue); color: #fff; font-size: 16px;
+  cursor: pointer; flex-shrink: 0;
 }
-.input-bar .send-btn:active { transform: scale(.92); }
-.input-bar .send-btn:disabled { background: #ccc; }
-.input-bar .hint-text {
-  position: absolute; top: -20px; left: 16px;
-  font-size: 10px; color: var(--muted);
-}
-/* ── Confirm bar (shown after LLM parses) ── */
+.input-bar button:active { transform: scale(.92); }
+.input-bar button:disabled { background: #bbb; }
+
+/* ── Confirm bar (appears above input bar) ── */
 .confirm-bar {
-  position: fixed; bottom: 64px; left: 8px; right: 8px;
-  background: var(--card); border-radius: var(--radius);
-  padding: 14px 16px; box-shadow: 0 4px 24px rgba(0,0,0,.15);
-  z-index: 99; display: none; animation: slideUp .25s;
+  display: none; background: var(--card);
+  border-top: 1px solid var(--border);
+  padding: 10px 14px;
 }
-@keyframes slideUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-.confirm-bar .cf-text { font-size: 14px; font-weight: 500; line-height: 1.4; margin-bottom: 8px; }
+.confirm-bar .cf-text {
+  font-size: 13px; font-weight: 500; margin-bottom: 8px;
+}
 .confirm-bar .cf-btns { display: flex; gap: 8px; }
 .confirm-bar .cf-btns button {
-  flex:1; padding: 9px; border-radius: 8px; border: none;
+  flex:1; padding: 8px; border-radius: 6px; border: none;
   font-size: 13px; font-weight: 600; cursor: pointer;
 }
 .cf-btns .btn-yes { background: var(--blue); color: #fff; }
 .cf-btns .btn-no { background: #f1f1f4; color: var(--text); }
-/* loading spinner in input bar */
-.input-bar .loading-spinner {
-  width: 20px; height: 20px; border: 2px solid #ddd; border-top-color: var(--blue);
-  border-radius: 50%; animation: spin .6s linear infinite; flex-shrink: 0;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
+
 /* ── Event detail sheet ── */
 .sheet-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 200;
-  display: none; align-items: flex-end; animation: fadeIn .2s;
+  display: none; align-items: flex-end;
 }
-@keyframes fadeIn { from { opacity:0; } }
 .sheet {
-  background: var(--card); border-radius: 20px 20px 0 0;
-  padding: 20px 20px 32px; width: 100%; max-height: 80vh;
-  overflow-y: auto; animation: slideUp2 .3s;
+  background: var(--card); border-radius: 16px 16px 0 0;
+  padding: 16px 18px 28px; width: 100%; max-height: 75vh;
+  overflow-y: auto;
 }
-@keyframes slideUp2 { from { transform:translateY(100%); } }
-.sheet-handle { width: 36px; height: 4px; background: #d1d1d6; border-radius: 2px; margin: 0 auto 16px; }
-.sheet h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
-.sheet .sheet-info { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
-.sheet .sheet-desc { font-size: 14px; line-height: 1.5; color: #555; margin-bottom: 12px; }
-.sheet .sheet-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
-.sheet .sheet-tag { font-size: 11px; padding: 4px 10px; border-radius: 12px; font-weight: 600; }
-.sheet-tag.remind { background: #fff3cd; color: #856404; }
-.sheet .sheet-actions { display: flex; gap: 10px; }
+.sheet-handle { width: 32px; height: 3px; background: #d1d1d6; border-radius: 2px; margin: 0 auto 12px; }
+.sheet h3 { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+.sheet .sheet-info { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+.sheet .sheet-actions { display: flex; gap: 8px; }
 .sheet .sheet-actions button {
-  flex:1; padding: 12px; border-radius: 10px; border: none;
+  flex:1; padding: 10px; border-radius: 8px; border: none;
   font-size: 14px; font-weight: 600; cursor: pointer;
 }
-/* ── Settings panel ── */
+.sheet-tag.remind { font-size: 10px; padding: 3px 8px; border-radius: 10px; font-weight: 600; background: #fff3cd; color: #856404; }
+
+/* ── Settings ── */
 .settings-panel {
   position: fixed; inset: 0; z-index: 300; display: none;
   align-items: center; justify-content: center; background: rgba(0,0,0,.4);
 }
 .settings-card {
-  background: var(--card); border-radius: 20px; padding: 24px;
-  width: 320px; max-width: 90vw; max-height: 85vh; overflow-y: auto;
+  background: var(--card); border-radius: 16px; padding: 20px;
+  width: 300px; max-width: 90vw; max-height: 80vh; overflow-y: auto;
 }
-.settings-card h3 { font-size: 17px; margin-bottom: 14px; }
+.settings-card h3 { font-size: 16px; margin-bottom: 10px; }
 .settings-card label {
-  display: block; font-size: 11px; font-weight: 600;
-  color: var(--muted); margin-bottom: 3px; margin-top: 10px;
+  display: block; font-size: 10px; font-weight: 600;
+  color: var(--muted); margin-bottom: 2px; margin-top: 8px;
 }
 .settings-card input, .settings-card select {
-  width: 100%; padding: 9px 10px; border: 1.5px solid var(--border);
-  border-radius: 8px; font-size: 13px; font-family: inherit;
+  width: 100%; padding: 8px 10px; border: 1.5px solid var(--border);
+  border-radius: 6px; font-size: 12px; font-family: inherit;
 }
-.settings-card input:focus { outline: none; border-color: var(--blue); }
-.settings-card .hint { font-size: 10px; color: var(--muted); margin-top: 3px; }
-.settings-card .btn-row { display: flex; gap: 8px; margin-top: 16px; }
+.settings-card .btn-row { display: flex; gap: 8px; margin-top: 14px; }
 .settings-card .btn-row button {
-  flex:1; padding: 10px; border-radius: 8px; border: none;
-  font-size: 14px; font-weight: 600; cursor: pointer;
+  flex:1; padding: 9px; border-radius: 6px; border: none;
+  font-size: 13px; font-weight: 600; cursor: pointer;
 }
+
 /* ── Toast ── */
 .toast {
-  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
-  background: #1d1d1f; color: #fff; padding: 10px 20px; border-radius: 20px;
-  font-size: 13px; font-weight: 600; z-index: 999;
-  animation: toastIn .3s; pointer-events: none;
+  position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+  background: #1d1d1f; color: #fff; padding: 8px 18px; border-radius: 16px;
+  font-size: 12px; font-weight: 600; z-index: 999;
+  animation: toastIn .25s; pointer-events: none;
 }
-@keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(-10px); } }
-
-/* ── Color legend bar ── */
-.legend-bar {
-  display: flex; gap: 4px; padding: 4px 12px; flex-shrink: 0;
-  overflow-x: auto; flex-wrap: wrap;
-}
-.legend-dot {
-  width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0;
-}
+@keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(-8px); } }
 </style>
 </head>
 <body>
 
-<!-- Header -->
-<div class="header">
-  <h1>📅 语音日程</h1>
-  <div class="header-actions">
-    <button class="icon-btn" onclick="openSettings()" title="设置">⚙️</button>
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <h1>📅 语音日程</h1>
+    <button onclick="openSettings()" style="width:30px;height:30px;border-radius:50%;border:none;background:#f0f0f4;font-size:15px;cursor:pointer;">⚙️</button>
   </div>
-</div>
 
-<!-- Week navigation -->
-<div class="week-nav">
-  <button class="nav-arrow" onclick="changeWeek(-1)">◀</button>
-  <span class="week-label" id="weekLabel"></span>
-  <button class="nav-arrow" onclick="changeWeek(1)">▶</button>
-  <button class="today-btn" onclick="goThisWeek()">本周</button>
-</div>
-
-<!-- Timetable -->
-<div class="timetable-wrap" id="timetableWrap">
-  <div class="timetable-inner" id="timetableInner">
-    <div class="timetable" id="timetable"></div>
+  <!-- Week navigation -->
+  <div class="week-nav">
+    <button onclick="changeWeek(-1)">◀</button>
+    <span class="week-label" id="weekLabel"></span>
+    <button onclick="changeWeek(1)">▶</button>
+    <button class="today-btn" onclick="goThisWeek()">本周</button>
   </div>
-</div>
 
-<!-- Bottom input bar -->
-<div class="input-bar" id="inputBar">
-  <input type="text" id="scheduleInput" placeholder="说说日程，如：明天下午3点开会 提醒我"
-    autocomplete="off" autocorrect="off">
-  <button class="send-btn" id="sendBtn" onclick="submitInput()">➤</button>
-</div>
+  <!-- Timetable -->
+  <div class="timetable-wrap" id="timetableWrap">
+    <div class="timetable-inner" id="timetableInner">
+      <div class="timetable" id="timetable"></div>
+    </div>
+  </div>
 
-<!-- Confirm bar -->
-<div class="confirm-bar" id="confirmBar">
-  <div class="cf-text" id="cfText"></div>
-  <div class="cf-btns">
-    <button class="btn-yes" onclick="confirmAdd()">✓ 添加</button>
-    <button class="btn-no" onclick="cancelAdd()">✗ 取消</button>
+  <!-- Confirm bar (between timetable and input) -->
+  <div class="confirm-bar" id="confirmBar">
+    <div class="cf-text" id="cfText"></div>
+    <div class="cf-btns">
+      <button class="btn-yes" onclick="confirmAdd()">✓ 添加</button>
+      <button class="btn-no" onclick="cancelAdd()">✗ 取消</button>
+    </div>
+  </div>
+
+  <!-- Input bar (always visible at bottom) -->
+  <div class="input-bar">
+    <input type="text" id="scheduleInput"
+      placeholder="说说日程，如：明天下午3点开会"
+      autocomplete="off">
+    <button id="sendBtn" onclick="submitInput()">➤</button>
   </div>
 </div>
 
 <!-- Event detail sheet -->
 <div class="sheet-overlay" id="sheetOverlay" onclick="closeSheet(event)">
-  <div class="sheet" id="sheetBox" onclick="event.stopPropagation()">
+  <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
     <div id="sheetContent"></div>
   </div>
@@ -308,30 +268,13 @@ body {
 <div class="settings-panel" id="settingsPanel" onclick="if(event.target===this)closeSettings()">
   <div class="settings-card" onclick="event.stopPropagation()">
     <h3>⚙️ 设置</h3>
-
     <label style="color:var(--blue);">🧠 日程解析 (LLM)</label>
     <label>API 地址</label>
-    <input type="text" id="cfgApiUrl" placeholder="https://api.deepseek.com/v1/chat/completions">
+    <input type="text" id="cfgApiUrl">
     <label>API Key</label>
-    <input type="password" id="cfgApiKey" placeholder="sk-...">
+    <input type="password" id="cfgApiKey">
     <label>模型</label>
-    <input type="text" id="cfgModel" placeholder="deepseek-chat">
-
-    <label style="color:var(--blue);margin-top:16px;">🎤 语音识别 (STT)</label>
-    <label>API 地址</label>
-    <input type="text" id="cfgSttApiUrl" placeholder="https://api.openai.com/v1/audio/transcriptions">
-    <label>API Key</label>
-    <input type="password" id="cfgSttApiKey" placeholder="sk-...（OpenAI Key）">
-    <label>模型</label>
-    <input type="text" id="cfgSttModel" placeholder="whisper-1">
-    <div class="hint">OpenAI Whisper API</div>
-
-    <label style="margin-top:10px;">语音语言</label>
-    <select id="cfgLang">
-      <option value="zh-CN">中文普通话</option>
-      <option value="en-US">English</option>
-    </select>
-
+    <input type="text" id="cfgModel">
     <div class="btn-row">
       <button style="background:#f1f1f4;color:var(--text);" onclick="closeSettings()">取消</button>
       <button style="background:var(--blue);color:#fff;" onclick="saveSettings()">保存</button>
@@ -343,7 +286,6 @@ body {
 // ==================== DATA ====================
 const STORAGE_KEY = 'voice_schedule_events';
 const SETTINGS_KEY = 'voice_schedule_settings';
-const TOTAL_FLUORO = 8;
 
 let events = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 let settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
@@ -354,20 +296,15 @@ const defaults = {
   apiUrl: 'https://api.deepseek.com/v1/chat/completions',
   apiKey: 'sk-310cc6d8520544fab871f78bcd254b4b',
   model: 'deepseek-chat',
-  sttApiUrl: 'https://api.openai.com/v1/audio/transcriptions',
-  sttApiKey: 'sk-proj-evn7dJfSNJHnrrcJqeoBc-' + 'ANJrykOXMrl84tzTfZI4201miOWRWtl5OAdAWW-Qogly7DDdBGl9T3BlbkFJNbSOhy_7KWIjEs7BdCkLAXC26AHIXO5DysMpiWz44zHIi6PKYRnWvMlV3v9gG6RXRk22Y9H7kA',
-  sttModel: 'whisper-1',
-  lang: 'zh-CN'
 };
 settings = { ...defaults, ...settings };
 
-// ==================== WEEK CALCULATION ====================
+// ==================== WEEK CALC ====================
 function getMonday(date) {
   const d = new Date(date);
   const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff); d.setHours(0,0,0,0);
-  return d;
+  d.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
+  d.setHours(0,0,0,0); return d;
 }
 
 function getWeekDates() {
@@ -375,73 +312,47 @@ function getWeekDates() {
   monday.setDate(monday.getDate() + weekOffset * 7);
   const dates = [];
   for (let i = 0; i < 7; i++) {
-    const d = new Date(monday); d.setDate(d.getDate() + i);
-    dates.push(d);
+    const d = new Date(monday); d.setDate(d.getDate() + i); dates.push(d);
   }
   return dates;
 }
 
 function fmtDate(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
-function fmtShort(d) { return `${d.getMonth()+1}/${d.getDate()}`; }
 
-// ==================== COLOR ASSIGNMENT ====================
-function getEventFluoroClass(eventId) {
-  const idx = events.findIndex(e => e.id === eventId);
-  return 'f' + (idx % TOTAL_FLUORO);
+// ==================== RENDER ====================
+function getEventsForDate(dateStr) {
+  return events.filter(e => e.date === dateStr).sort((a,b) => (a.startTime||'').localeCompare(b.startTime||''));
 }
-
-// ==================== OVERLAP COMPUTATION ====================
-// For a given day, compute which events overlap and assign each a "column" index
 
 function computeDayLayout(dayEvents) {
-  // Returns: { maxCols: number, colMap: { eventId -> colIndex }, hourMap: { hour -> [eventIds sorted] } }
-  if (dayEvents.length === 0) return { maxCols: 1, colMap: {}, hourMap: {} };
-
-  // For each hour 6-23, find active events
+  if (dayEvents.length === 0) return { maxCols: 1, colMap: {} };
+  let maxCols = 1;
   const hourMap = {};
   for (let h = 6; h <= 23; h++) {
-    hourMap[h] = [];
-    for (const evt of dayEvents) {
-      const sh = parseInt((evt.startTime || '06:00').split(':')[0]);
-      const eh = parseInt((evt.endTime || '24:00').split(':')[0]);
-      if (sh <= h && eh > h) {
-        hourMap[h].push(evt);
-      }
-    }
-    // Sort by start time for consistency
-    hourMap[h].sort((a, b) => (a.startTime||'').localeCompare(b.startTime||'') || a.title.localeCompare(b.title));
+    hourMap[h] = dayEvents.filter(e => {
+      const sh = parseInt((e.startTime||'06').split(':')[0]);
+      const eh = parseInt((e.endTime||'24').split(':')[0]);
+      return sh <= h && eh > h;
+    });
+    maxCols = Math.max(maxCols, hourMap[h].length);
   }
 
-  // Max simultaneous events
-  let maxCols = 1;
-  for (let h = 6; h <= 23; h++) {
-    maxCols = Math.max(maxCols, hourMap[h].length || 1);
-  }
-
-  // Greedy column assignment: sort events by start time, assign each to first free column
-  const sorted = [...dayEvents].sort((a, b) =>
-    (a.startTime || '00:00').localeCompare(b.startTime || '00:00') || a.title.localeCompare(b.title)
-  );
-
-  const colMap = {}; // eventId -> col
-  const colBusyUntil = {}; // col -> endHour (when this column frees up)
+  const sorted = [...dayEvents].sort((a,b) =>
+    (a.startTime||'00:00').localeCompare(b.startTime||'00:00'));
+  const colMap = {};
+  const colBusyUntil = {};
 
   for (const evt of sorted) {
-    const sh = parseInt((evt.startTime || '06:00').split(':')[0]);
-    // Find first free column
+    const sh = parseInt((evt.startTime||'06').split(':')[0]);
     let col = 0;
-    while (colBusyUntil[col] !== undefined && colBusyUntil[col] > sh) {
-      col++;
-    }
+    while (colBusyUntil[col] !== undefined && colBusyUntil[col] > sh) col++;
     colMap[evt.id] = col;
-    colBusyUntil[col] = parseInt((evt.endTime || '24:00').split(':')[0]);
+    colBusyUntil[col] = parseInt((evt.endTime||'24').split(':')[0]);
     if (col + 1 > maxCols) maxCols = col + 1;
   }
-
-  return { maxCols, colMap, hourMap };
+  return { maxCols, colMap };
 }
 
-// ==================== RENDER TIMETABLE ====================
 function renderTimetable() {
   const dates = getWeekDates();
   const todayStr = fmtDate(new Date());
@@ -449,32 +360,22 @@ function renderTimetable() {
 
   const grid = document.getElementById('timetable');
   const label = document.getElementById('weekLabel');
-  const wrap = document.getElementById('timetableWrap');
-
   const first = dates[0], last = dates[6];
   label.textContent = `${first.getMonth()+1}月${first.getDate()}日 - ${last.getMonth()+1}月${last.getDate()}日`;
 
-  // ── Build grid HTML (cells only, no events inside) ──
-  let html = '';
-  // Corner spacer
-  html += '<div class="tt-header" style="position:sticky;top:0;left:0;z-index:4;background:var(--card);"></div>';
-  // Day headers
+  // Build grid HTML
+  let html = '<div style="position:sticky;top:0;left:0;z-index:4;background:var(--card);"></div>';
   for (let i = 0; i < 7; i++) {
-    const d = dates[i];
-    const dateStr = fmtDate(d);
-    const isToday = dateStr === todayStr;
+    const isToday = fmtDate(dates[i]) === todayStr;
     html += `<div class="tt-header${isToday?' today':''}" style="position:sticky;top:0;z-index:3;">
-      <span class="day-name">${days[i]}</span>
-      <span class="day-date">${d.getDate()}</span>
+      <span>${days[i]}</span>
+      <span class="day-date">${dates[i].getDate()}</span>
     </div>`;
   }
-  // Time rows
   for (let h = 6; h <= 23; h++) {
-    const slot = `${String(h).padStart(2,'0')}:00`;
-    html += `<div class="tt-time" style="position:sticky;left:0;z-index:2;">${slot}</div>`;
+    html += `<div class="tt-time" style="position:sticky;left:0;z-index:2;">${String(h).padStart(2,'0')}:00</div>`;
     for (let i = 0; i < 7; i++) {
-      const d = dates[i];
-      const dateStr = fmtDate(d);
+      const dateStr = fmtDate(dates[i]);
       const isToday = dateStr === todayStr;
       html += `<div class="tt-cell${isToday?' today':''}"
         data-date="${dateStr}" data-hour="${h}"
@@ -483,13 +384,13 @@ function renderTimetable() {
   }
   grid.innerHTML = html;
 
-  // ── Render event blocks as absolutely-positioned overlays ──
   // Remove old event blocks
   document.querySelectorAll('.evt-block').forEach(el => el.remove());
 
+  // Render event overlay blocks
   const inner = document.getElementById('timetableInner');
-  const HEADER_H = 44; // approximate header height in px
-  const ROW_H = 48;     // row height in px
+  const HEADER_H = 40; // approximate
+  const ROW_H = 46;
 
   for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
     const dateStr = fmtDate(dates[dayIdx]);
@@ -499,96 +400,72 @@ function renderTimetable() {
     const layout = computeDayLayout(dayEvents);
 
     for (const evt of dayEvents) {
-      const startH = parseInt((evt.startTime || '06:00').split(':')[0]);
-      const startM = parseInt((evt.startTime || '06:00').split(':')[1] || '0');
-      const endH = parseInt((evt.endTime || '24:00').split(':')[0]);
-      const endM = parseInt((evt.endTime || '24:00').split(':')[1] || '0');
+      const startH = parseInt((evt.startTime||'06').split(':')[0]);
+      const startM = parseInt((evt.startTime||'06:00').split(':')[1]||'0');
+      const endH = parseInt((evt.endTime||'24').split(':')[0]);
+      const endM = parseInt((evt.endTime||'24:00').split(':')[1]||'0');
 
-      const top = HEADER_H + (startH - 6) * ROW_H + (startM / 60) * ROW_H;
-      const bottom = HEADER_H + (endH - 6) * ROW_H + (endM / 60) * ROW_H;
-      const height = bottom - top;
+      const top = HEADER_H + (startH - 6) * ROW_H + (startM/60)*ROW_H;
+      const height = Math.max(16, (endH - 6)*ROW_H + (endM/60)*ROW_H - (startH - 6)*ROW_H - (startM/60)*ROW_H);
 
       const colIndex = layout.colMap[evt.id] || 0;
       const totalCols = layout.maxCols;
 
-      // Column width: each day column is 1fr
-      // Grid: 40px | repeat(7, 1fr)
-      // Get actual column width from the grid
-      const gridEl = document.getElementById('timetable');
-      const gridWidth = gridEl.offsetWidth;
-      const timeColWidth = 40;
-      const dayColWidth = (gridWidth - timeColWidth) / 7;
+      const gridWidth = grid.offsetWidth;
+      const dayColWidth = (gridWidth - 38) / 7;
+      const left = 38 + dayIdx * dayColWidth + (colIndex/totalCols)*dayColWidth;
+      const width = Math.max(20, dayColWidth/totalCols - 2);
 
-      // left = timeCol + dayIdx * dayCol + colOffset
-      const left = timeColWidth + dayIdx * dayColWidth + (colIndex / totalCols) * dayColWidth;
-      const width = dayColWidth / totalCols - 2; // 2px gap
-
-      const fluoroClass = getEventFluoroClass(evt.id);
-      const timeLabel = evt.startTime ? `${evt.startTime.slice(0,5)}` : '';
-      const endLabel = evt.endTime ? `${evt.endTime.slice(0,5)}` : '';
+      const fluoroClass = 'f' + (events.findIndex(e => e.id === evt.id) % 8);
+      const timeLabel = evt.startTime ? evt.startTime.slice(0,5) : '';
 
       const block = document.createElement('div');
-      block.className = `evt-block ${fluoroClass}`;
-      block.style.cssText = `top:${top}px;left:${left}px;width:${Math.max(width,20)}px;height:${Math.max(height,16)}px;`;
-      block.setAttribute('data-evtid', evt.id);
+      block.className = 'evt-block ' + fluoroClass;
+      block.style.cssText = `top:${top}px;left:${left}px;width:${width}px;height:${height}px;`;
       block.onclick = function(e) { e.stopPropagation(); openEvent(evt.id); };
-
-      // Content: show time range + title if enough space
-      if (height > 30) {
-        block.innerHTML = `<span class="evt-time">${timeLabel}${endLabel?' - '+endLabel:''}</span><span class="evt-title">${escHtml(evt.title)}</span>`;
-      } else {
-        block.innerHTML = `<span class="evt-title">${escHtml(evt.title)}</span>`;
-      }
-
+      block.innerHTML = height > 30
+        ? `<span class="evt-time">${timeLabel}</span><span class="evt-title">${escHtml(evt.title)}</span>`
+        : `<span class="evt-title">${escHtml(evt.title)}</span>`;
       inner.appendChild(block);
     }
   }
 
-  // ── Scroll to current time ──
-  const now = new Date();
-  const curHour = now.getHours();
-  const scrollTo = Math.max(0, curHour - 3);
-  const scrollPos = HEADER_H + (scrollTo - 6) * ROW_H;
+  // Scroll to current time
   if (weekOffset === 0) {
-    setTimeout(() => { wrap.scrollTop = Math.max(0, scrollPos); }, 100);
+    const curHour = new Date().getHours();
+    setTimeout(() => {
+      document.getElementById('timetableWrap').scrollTop = Math.max(0, HEADER_H + (curHour - 7) * ROW_H);
+    }, 100);
   }
-}
-
-function getEventsForDate(dateStr) {
-  return events.filter(e => e.date === dateStr).sort((a,b) => (a.startTime||'').localeCompare(b.startTime||''));
 }
 
 // ==================== EVENT SHEET ====================
 function onCellClick(dateStr, hour) {
-  const startTime = `${String(hour).padStart(2,'0')}:00`;
-  const endTime = `${String(hour+1).padStart(2,'0')}:00`;
-  showAddSheet(dateStr, startTime, endTime);
+  showAddSheet(dateStr, `${String(hour).padStart(2,'0')}:00`, `${String(hour+1).padStart(2,'0')}:00`);
 }
 
 function showAddSheet(dateStr, startTime, endTime) {
   const sheet = document.getElementById('sheetOverlay');
-  const content = document.getElementById('sheetContent');
-  content.innerHTML = `
+  document.getElementById('sheetContent').innerHTML = `
     <div class="sheet-handle"></div>
     <h3>新建日程</h3>
-    <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
-      <input type="text" id="addTitle" placeholder="日程标题" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:8px;font-size:15px;font-family:inherit;">
-      <input type="date" id="addDate" value="${dateStr}" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
-      <div style="display:flex;gap:8px;">
-        <input type="time" id="addStart" value="${startTime}" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
-        <span style="line-height:40px;color:var(--muted);">至</span>
-        <input type="time" id="addEnd" value="${endTime}" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+      <input type="text" id="addTitle" placeholder="日程标题" style="padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;">
+      <input type="date" id="addDate" value="${dateStr}" style="padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;">
+      <div style="display:flex;gap:6px;">
+        <input type="time" id="addStart" value="${startTime}" style="flex:1;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;">
+        <span style="line-height:38px;color:var(--muted);">至</span>
+        <input type="time" id="addEnd" value="${endTime}" style="flex:1;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;">
       </div>
-      <textarea id="addDesc" placeholder="备注（可选）" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;min-height:60px;resize:vertical;"></textarea>
-      <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;">
+      <textarea id="addDesc" placeholder="备注" style="padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;min-height:50px;resize:vertical;"></textarea>
+      <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;">
         <input type="checkbox" id="addRemind" checked> 提前15分钟提醒
       </label>
     </div>
-    <div class="sheet-actions" style="margin-top:16px;">
+    <div class="sheet-actions" style="margin-top:14px;">
       <button style="background:#f1f1f4;color:var(--text);" onclick="closeSheet()">取消</button>
       <button style="background:var(--blue);color:#fff;" onclick="saveNewEvent()">保存</button>
-    </div>
-  `;
+    </div>`;
   sheet.style.display = 'flex';
 }
 
@@ -596,21 +473,17 @@ function openEvent(id) {
   const evt = events.find(e => e.id === id);
   if (!evt) return;
   const sheet = document.getElementById('sheetOverlay');
-  const content = document.getElementById('sheetContent');
-  const timeStr = evt.startTime ? `${evt.startTime.slice(0,5)} - ${evt.endTime?.slice(0,5) || '?'}` : '全天';
-  const remindTag = evt.reminder ? '<span class="sheet-tag remind">🔔 已开启提醒</span>' : '';
-
-  content.innerHTML = `
+  const timeStr = evt.startTime ? `${evt.startTime.slice(0,5)} - ${evt.endTime?.slice(0,5)||'?'}` : '全天';
+  document.getElementById('sheetContent').innerHTML = `
     <div class="sheet-handle"></div>
     <h3>${escHtml(evt.title)}</h3>
     <div class="sheet-info">📅 ${evt.date} · ${timeStr}</div>
-    ${evt.description ? `<div class="sheet-desc">${escHtml(evt.description)}</div>` : ''}
-    <div class="sheet-tags">${remindTag}</div>
-    <div class="sheet-actions">
+    ${evt.description ? `<div style="font-size:13px;color:#555;margin-bottom:10px;">${escHtml(evt.description)}</div>` : ''}
+    ${evt.reminder ? '<span class="sheet-tag remind">🔔 已开启提醒</span>' : ''}
+    <div class="sheet-actions" style="margin-top:14px;">
       <button style="background:#f1f1f4;color:var(--text);" onclick="closeSheet()">关闭</button>
       <button style="background:var(--red);color:#fff;" onclick="deleteEvent('${evt.id}')">删除</button>
-    </div>
-  `;
+    </div>`;
   sheet.style.display = 'flex';
 }
 
@@ -626,30 +499,21 @@ function saveNewEvent() {
   const endTime = document.getElementById('addEnd').value;
   const description = document.getElementById('addDesc').value.trim();
   const reminder = document.getElementById('addRemind').checked;
-
   if (!title) { toast('请输入标题'); return; }
-  if (!date) { toast('请选择日期'); return; }
 
-  const evt = {
-    id: 'evt_' + Date.now(),
-    title, date,
-    startTime: startTime || null,
-    endTime: endTime || null,
-    description, reminder,
-    createdAt: Date.now()
-  };
-
-  events.push(evt);
-  saveAndRefresh();
-  closeSheet();
-  toast('✅ 日程已添加');
+  events.push({
+    id: 'evt_' + Date.now(), title, date,
+    startTime: startTime || null, endTime: endTime || null,
+    description, reminder, createdAt: Date.now()
+  });
+  saveAndRefresh(); closeSheet();
+  toast('✅ 已添加: ' + title);
 }
 
 function deleteEvent(id) {
   if (!confirm('确定删除？')) return;
   events = events.filter(e => e.id !== id);
-  saveAndRefresh();
-  closeSheet();
+  saveAndRefresh(); closeSheet();
   toast('🗑️ 已删除');
 }
 
@@ -660,75 +524,66 @@ function saveAndRefresh() {
 }
 
 function escHtml(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
+  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
 }
 
 function toast(msg) {
-  const t = document.createElement('div');
-  t.className = 'toast'; t.textContent = msg;
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
   document.body.appendChild(t);
-  setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); }, 2000);
+  setTimeout(() => { t.remove(); }, 2000);
 }
 
-// ==================== INPUT SUBMISSION ====================
-// User types (or uses keyboard mic) → DeepSeek parses → confirm → add
-
+// ==================== INPUT + LLM ====================
 async function submitInput() {
   const inp = document.getElementById('scheduleInput');
   const btn = document.getElementById('sendBtn');
   const text = inp.value.trim();
   if (!text) { toast('请输入日程内容'); return; }
 
-  // Show loading
-  btn.disabled = true;
-  btn.innerHTML = '<span class="loading-spinner"></span>';
+  btn.disabled = true; btn.textContent = '⏳';
 
-  try {
-    await processWithLLM(text);
-  } catch (e) {
-    toast('⚠️ 解析失败，请重试');
-    btn.disabled = false;
-    btn.textContent = '➤';
+  let parsed = null;
+  if (settings.apiKey) {
+    try { parsed = await callLLM(text); }
+    catch (e) { console.error('LLM err:', e); parsed = localParse(text); }
+  } else {
+    parsed = localParse(text);
   }
-}
 
-// Called after LLM parse succeeds (with parsed data ready)
-// Shows confirm bar at bottom
-function showConfirmBar(parsed) {
+  btn.disabled = false; btn.textContent = '➤';
+
+  if (!parsed || !parsed.title) {
+    toast('❌ 无法识别，请换种说法试试'); return;
+  }
+
   pendingParsed = parsed;
   const timeInfo = parsed.startTime ? `${parsed.startTime}-${parsed.endTime||''}` : '全天';
   const remindInfo = parsed.reminder ? '· 🔔提醒' : '';
   document.getElementById('cfText').innerHTML =
-    `<b>${escHtml(parsed.title)}</b><br><span style="font-size:12px;color:var(--muted);">📅 ${parsed.date} · ${timeInfo} ${remindInfo}</span>`;
+    `<b>${escHtml(parsed.title)}</b><br><span style="font-size:11px;color:var(--muted);">📅 ${parsed.date} · ${timeInfo} ${remindInfo}</span>`;
   document.getElementById('confirmBar').style.display = 'block';
-  document.getElementById('sendBtn').disabled = false;
-  document.getElementById('sendBtn').textContent = '➤';
 }
 
-async function processWithLLM(text) {
-  let parsed = null;
-  if (settings.apiKey) {
-    try {
-      parsed = await callLLM(text);
-    } catch (e) {
-      console.error('LLM error:', e);
-      parsed = localParse(text);
-    }
-  } else {
-    await sleep(400);
-    parsed = localParse(text);
-  }
+function confirmAdd() {
+  if (!pendingParsed) return;
+  const p = pendingParsed;
+  events.push({
+    id: 'evt_' + Date.now(),
+    title: p.title || '未命名', date: p.date,
+    startTime: p.startTime || null, endTime: p.endTime || null,
+    description: p.description || '', reminder: p.reminder || false,
+    createdAt: Date.now()
+  });
+  saveAndRefresh();
+  document.getElementById('scheduleInput').value = '';
+  document.getElementById('confirmBar').style.display = 'none';
+  pendingParsed = null;
+  toast('✅ 已添加: ' + p.title);
+}
 
-  if (!parsed || !parsed.title) {
-    toast('❌ 无法识别日程信息，请换种说法试试');
-    document.getElementById('sendBtn').disabled = false;
-    document.getElementById('sendBtn').textContent = '➤';
-    return;
-  }
-
-  showConfirmBar(parsed);
+function cancelAdd() {
+  pendingParsed = null;
+  document.getElementById('confirmBar').style.display = 'none';
 }
 
 async function callLLM(text) {
@@ -737,205 +592,134 @@ async function callLLM(text) {
   const nowTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   const weekDates = getWeekDates();
 
-  const systemPrompt = `你是一个日程解析助手。根据用户的自然语言输入，提取日程信息并返回 JSON。
+  const systemPrompt = `你是日程解析助手。提取自然语言中的日程信息，返回JSON。
 
-当前时间：${today} ${nowTime}（${['周日','周一','周二','周三','周四','周五','周六'][now.getDay()]}）
-本周日期：
-- 周一: ${fmtDate(weekDates[0])}
-- 周二: ${fmtDate(weekDates[1])}
-- 周三: ${fmtDate(weekDates[2])}
-- 周四: ${fmtDate(weekDates[3])}
-- 周五: ${fmtDate(weekDates[4])}
-- 周六: ${fmtDate(weekDates[5])}
-- 周日: ${fmtDate(weekDates[6])}
+当前时间: ${today} ${nowTime} ${['周日','周一','周二','周三','周四','周五','周六'][now.getDay()]}
+本周: 一${fmtDate(weekDates[0])} 二${fmtDate(weekDates[1])} 三${fmtDate(weekDates[2])} 四${fmtDate(weekDates[3])} 五${fmtDate(weekDates[4])} 六${fmtDate(weekDates[5])} 日${fmtDate(weekDates[6])}
 
-规则：
-1. "今天/明天/后天/大后天"转 YYYY-MM-DD
-2. "下周X/下周一/下周三"等=本周日期+7天
-3. "上午/下午/晚上/中午"转24小时
-4. "8点/九点/三点半"转 HH:MM
-5. "一个小时/两小时"计算结束时间
-6. 无明确时间则 startTime/endTime 为 null
-7. 含"提醒/别忘了/记得"则 reminder=true
-8. description 提炼补充信息
+规则:
+1. 今天/明天/后天/大后天 → YYYY-MM-DD
+2. 下周X = 本周日期+7天
+3. 上午/下午/晚上转24小时制: 上午6-12, 下午12-18, 晚上18-22
+4. "8点"/"三点半" → HH:MM
+5. "一小时"/"两小时"推算结束时间
+6. 无时间则startTime/endTime为null
+7. 含"提醒/别忘了/记得"则reminder=true
 
-只返回 JSON（不要代码块）：
-{"title":"标题","date":"YYYY-MM-DD","startTime":"HH:MM或null","endTime":"HH:MM或null","description":"补充","reminder":true或false}`;
+只输出JSON:
+{"title":"标题","date":"YYYY-MM-DD","startTime":"HH:MM或null","endTime":"HH:MM或null","description":"补充","reminder":false}`;
 
   const resp = await fetch(settings.apiUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${settings.apiKey}` },
-    body: JSON.stringify({
-      model: settings.model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: text }
-      ],
-      temperature: 0.1, max_tokens: 500
-    })
+    headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${settings.apiKey}` },
+    body: JSON.stringify({ model: settings.model, messages:[
+      { role:'system', content: systemPrompt },
+      { role:'user', content: text }
+    ], temperature: 0.1, max_tokens: 500 })
   });
-
-  if (!resp.ok) throw new Error(`API ${resp.status}`);
+  if (!resp.ok) throw new Error('API '+resp.status);
   const data = await resp.json();
   const content = data.choices?.[0]?.message?.content || '';
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('No JSON in response');
-  return JSON.parse(jsonMatch[0]);
+  const m = content.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error('No JSON');
+  return JSON.parse(m[0]);
 }
 
 function localParse(text) {
   const today = fmtDate(new Date());
   const weekDates = getWeekDates();
-  const dayMap = {
-    '今天': today,
-    '明天': fmtDate(new Date(Date.now() + 86400000)),
-    '后天': fmtDate(new Date(Date.now() + 172800000)),
-    '大后天': fmtDate(new Date(Date.now() + 259200000)),
-  };
-  const weekdayMap = {};
-  ['周一','周二','周三','周四','周五','周六','周日','星期一','星期二','星期三','星期四','星期五','星期六','星期日','礼拜一','礼拜二','礼拜三','礼拜四','礼拜五','礼拜六','礼拜天'].forEach((name, i) => {
-    weekdayMap[name] = fmtDate(weekDates[i % 7]);
-  });
 
   let date = today;
-  let startTime = null, endTime = null;
-  let reminder = false;
-  let title = text;
-  let description = '';
+  const dayMap = {
+    '今天':today, '明天':fmtDate(new Date(Date.now()+86400000)),
+    '后天':fmtDate(new Date(Date.now()+172800000)),
+    '大后天':fmtDate(new Date(Date.now()+259200000))
+  };
+  for (const [w,d] of Object.entries(dayMap)) { if (text.includes(w)) { date=d; break; } }
 
-  if (/提醒|别忘了|记得|通知|叫我/.test(text)) reminder = true;
-
-  for (const [word, d] of Object.entries(dayMap)) {
-    if (text.includes(word)) { date = d; break; }
-  }
   if (date === today) {
-    for (const [word, d] of Object.entries(weekdayMap)) {
-      if (text.includes(word)) {
+    const wmap = {};
+    ['周一','周二','周三','周四','周五','周六','周日'].forEach((n,i) => { wmap[n] = fmtDate(weekDates[i]); });
+    for (const [w,d] of Object.entries(wmap)) {
+      if (text.includes(w)) {
         const wd = new Date(d);
-        if (wd < new Date(today)) wd.setDate(wd.getDate() + 7);
+        if (wd < new Date(today)) wd.setDate(wd.getDate()+7);
         date = fmtDate(wd); break;
       }
     }
   }
 
-  const simpleMatch = text.match(/(\d{1,2})[点:：](\d{2})?/g);
-  let times = [];
-  if (simpleMatch) {
-    for (const m of simpleMatch) {
-      const parts = m.match(/(\d{1,2})[点:：](\d{2})?/);
-      if (parts) {
-        let h = parseInt(parts[1]);
-        const min = parts[2] ? parseInt(parts[2]) : 0;
-        if (/下午|晚上|傍晚/.test(text) && h < 12) h += 12;
-        if (/上午|早上|早晨/.test(text) && h === 12) h = 0;
-        if (!/[上中下]午|晚上|早上|早晨|傍晚/.test(text) && h <= 6 && h >= 1) h += 12;
+  const times = [];
+  const tm = text.match(/(\d{1,2})[点:：](\d{2})?/g);
+  if (tm) {
+    for (const m of tm) {
+      const p = m.match(/(\d{1,2})[点:：](\d{2})?/);
+      if (p) {
+        let h = parseInt(p[1]); const min = p[2] ? parseInt(p[2]) : 0;
+        if (/下午|晚上|傍晚/.test(text) && h<12) h+=12;
+        if (/上午|早上|早晨/.test(text) && h===12) h=0;
+        if (!/[上中下]午|晚上|早上|早晨|傍晚/.test(text) && h<=6 && h>=1) h+=12;
         times.push(`${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`);
       }
     }
   }
 
-  if (times.length >= 2) { startTime = times[0]; endTime = times[1]; }
-  else if (times.length === 1) { startTime = times[0]; endTime = `${String(parseInt(startTime)+1).padStart(2,'0')}:00`; }
+  let startTime=null, endTime=null;
+  if (times.length>=2) { startTime=times[0]; endTime=times[1]; }
+  else if (times.length===1) { startTime=times[0]; endTime=`${String(parseInt(startTime)+1).padStart(2,'0')}:00`; }
 
-  title = title
-    .replace(/今天|明天|后天|大后天/g, '')
-    .replace(/下周[一二三四五六日天]/g, '')
-    .replace(/[周礼拜][一二三四五六日天]/g, '')
-    .replace(/\d{1,2}[点:：]\d{0,2}[分]?/g, '')
-    .replace(/提醒[我]?|别忘了|记得|通知[我]?|叫我/g, '')
-    .replace(/[上中下]午|晚上|早上|早晨|傍晚/g, '')
-    .replace(/\s+/g, ' ').trim();
-  if (!title) title = '未命名日程';
+  const reminder = /提醒|别忘了|记得|通知|叫我/.test(text);
+  let title = text
+    .replace(/今天|明天|后天|大后天/g,'')
+    .replace(/下周[一二三四五六日天]/g,'')
+    .replace(/[周礼拜][一二三四五六日天]/g,'')
+    .replace(/\d{1,2}[点:：]\d{0,2}[分]?/g,'')
+    .replace(/提醒[我]?|别忘了|记得|通知[我]?|叫我/g,'')
+    .replace(/[上中下]午|晚上|早上|早晨|傍晚/g,'')
+    .replace(/\s+/g,' ').trim();
+  if (!title) title='未命名日程';
 
-  return { title, date, startTime, endTime, description, reminder };
+  return { title, date, startTime, endTime, description:'', reminder };
 }
-
-function confirmAdd() {
-  if (!pendingParsed) return;
-  const p = pendingParsed;
-  const evt = {
-    id: 'evt_' + Date.now(),
-    title: p.title || '未命名',
-    date: p.date,
-    startTime: p.startTime || null,
-    endTime: p.endTime || null,
-    description: p.description || '',
-    reminder: p.reminder || false,
-    createdAt: Date.now()
-  };
-  events.push(evt);
-  saveAndRefresh();
-  // Clear input & hide confirm
-  document.getElementById('scheduleInput').value = '';
-  document.getElementById('confirmBar').style.display = 'none';
-  pendingParsed = null;
-  toast('✅ 已添加: ' + evt.title);
-}
-
-function cancelAdd() {
-  pendingParsed = null;
-  document.getElementById('confirmBar').style.display = 'none';
-  document.getElementById('sendBtn').disabled = false;
-  document.getElementById('sendBtn').textContent = '➤';
-  toast('已取消');
-}
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // ==================== SETTINGS ====================
 function openSettings() {
   document.getElementById('cfgApiUrl').value = settings.apiUrl;
   document.getElementById('cfgApiKey').value = settings.apiKey;
   document.getElementById('cfgModel').value = settings.model;
-  document.getElementById('cfgSttApiUrl').value = settings.sttApiUrl || '';
-  document.getElementById('cfgSttApiKey').value = settings.sttApiKey || '';
-  document.getElementById('cfgSttModel').value = settings.sttModel || 'whisper-1';
-  document.getElementById('cfgLang').value = settings.lang;
   document.getElementById('settingsPanel').style.display = 'flex';
 }
-
-function closeSettings() {
-  document.getElementById('settingsPanel').style.display = 'none';
-}
-
+function closeSettings() { document.getElementById('settingsPanel').style.display = 'none'; }
 function saveSettings() {
   settings.apiUrl = document.getElementById('cfgApiUrl').value.trim();
   settings.apiKey = document.getElementById('cfgApiKey').value.trim();
   settings.model = document.getElementById('cfgModel').value.trim();
-  settings.sttApiUrl = document.getElementById('cfgSttApiUrl').value.trim();
-  settings.sttApiKey = document.getElementById('cfgSttApiKey').value.trim();
-  settings.sttModel = document.getElementById('cfgSttModel').value.trim();
-  settings.lang = document.getElementById('cfgLang').value;
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  closeSettings();
-  toast('✅ 设置已保存');
+  closeSettings(); toast('✅ 已保存');
 }
 
 // ==================== NAVIGATION ====================
-function changeWeek(delta) { weekOffset += delta; renderTimetable(); }
+function changeWeek(d) { weekOffset += d; renderTimetable(); }
 function goThisWeek() { weekOffset = 0; renderTimetable(); }
 
 // ==================== REMINDERS ====================
 function checkReminders() {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   const now = new Date();
-  const nowStr = fmtDate(now);
-  const nowMin = now.getHours() * 60 + now.getMinutes();
-
+  const nowStr = fmtDate(now), nowMin = now.getHours()*60+now.getMinutes();
   events.forEach(e => {
     if (!e.reminder || !e.startTime || e.date !== nowStr) return;
-    const [h, m] = e.startTime.split(':').map(Number);
-    const evtMin = h * 60 + m;
-    const diff = evtMin - nowMin;
+    const [h,m] = e.startTime.split(':').map(Number);
+    const diff = h*60+m - nowMin;
     if (diff >= 0 && diff <= 15) {
       const key = `n_${e.id}_${nowStr}_${Math.floor(nowMin/5)}`;
       if (!sessionStorage.getItem(key)) {
-        sessionStorage.setItem(key, '1');
+        sessionStorage.setItem(key,'1');
         new Notification('🔔 日程提醒', {
           body: `${e.title}\n${e.startTime.slice(0,5)} · ${diff===0?'现在！':diff+'分钟后'}`,
           tag: e.id, requireInteraction: true
         });
-        toast(`🔔 ${e.title} ${diff===0?'现在开始':diff+'分钟后'}`);
+        toast(`🔔 ${e.title}`);
       }
     }
   });
@@ -950,16 +734,15 @@ function init() {
   setInterval(checkReminders, 30000);
   checkReminders();
 
-  // Enter key submits input
-  document.getElementById('scheduleInput').addEventListener('keydown', (e) => {
+  // Enter to submit
+  document.getElementById('scheduleInput').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') submitInput();
   });
 
-  // Re-render on resize to fix event block positions
-  let resizeTimer;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(renderTimetable, 200);
+  // Resize handler
+  let rt;
+  window.addEventListener('resize', function() {
+    clearTimeout(rt); rt = setTimeout(renderTimetable, 200);
   });
 }
 
